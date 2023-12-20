@@ -66,6 +66,15 @@ class Progress extends HTMLElement {
     this._progressState.activeStep = this._progressState.activeStep + increment;
     this.dispatchProgressEvent();
   }
+  startPageChangeListener() {
+    const mutationObserverCallback = (mutations, observer2) => {
+      for (const mutation of mutations) {
+        console.log(mutation);
+      }
+    };
+    const observer = new MutationObserver(mutationObserverCallback);
+    observer.observe(document.querySelector(".page"), { attributes: true });
+  }
   createGlobalStyles() {
     const globalStyles = `
         .progress-wrapper {
@@ -120,6 +129,17 @@ class ProgressBar extends Progress {
       "percentcomplete",
       Math.ceil(this.getActiveStepFromState())
     );
+  }
+  startPageChangeListener() {
+    const mutationObserverCallback = (mutations, observer2) => {
+      for (const mutation of mutations) {
+        if (mutation.removedNodes.length > 0 && mutation.removedNodes[0].classList.contains("page")) {
+          document.dispatchEvent(new Event("progressBarUpdate"));
+        }
+      }
+    };
+    const observer = new MutationObserver(mutationObserverCallback);
+    observer.observe(document.querySelector(".survey"), { childList: true });
   }
   createStyles() {
     const progressBarTheme = this.getConfigs("progressBar");

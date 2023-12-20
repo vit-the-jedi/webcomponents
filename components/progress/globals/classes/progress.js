@@ -32,6 +32,16 @@ class Progress extends HTMLElement {
     this._progressState.activeStep = this._progressState.activeStep + increment;
     this.dispatchProgressEvent();
   }
+  startPageChangeListener(){
+    const mutationObserverCallback = (mutations, observer) =>{
+      for (const mutation of mutations) {
+        console.log(mutation);
+      }
+    }
+
+    const observer = new MutationObserver(mutationObserverCallback);
+    observer.observe(document.querySelector(".page"), { attributes:true});
+  }
   createGlobalStyles(){
     const globalStyles = `
         .progress-wrapper {
