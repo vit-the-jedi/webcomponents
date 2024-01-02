@@ -106,7 +106,7 @@ class ProgressBar extends Progress {
         );
       }
     });
-    
+    this.startPageChangeListener();
   }
 }
 customElements.define("progress-bar", ProgressBar);
