@@ -35,12 +35,14 @@ class Progress extends HTMLElement {
   startPageChangeListener(){
     const mutationObserverCallback = (mutations, observer) =>{
       for (const mutation of mutations) {
-        console.log(mutation);
+        if(mutation.removedNodes.length > 0 && mutation.removedNodes[0].classList.contains("page")){
+          //dispatch progress event
+          document.dispatchEvent(new Event("progressBarUpdate"));
+        }
       }
     }
-
     const observer = new MutationObserver(mutationObserverCallback);
-    observer.observe(document.querySelector(".page"), { attributes:true});
+    observer.observe(document.querySelector(".survey"), { childList:true});
   }
   createGlobalStyles(){
     const globalStyles = `
