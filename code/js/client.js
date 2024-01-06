@@ -46,6 +46,7 @@ class Progress extends HTMLElement {
     this._progressState = {};
     this._progressState.activeStep = 0;
     this._progressState.steps = /* @__PURE__ */ new Map();
+    this.progressElement = null;
   }
   getConfigs(elementType) {
     return this.configs[elementType];
@@ -62,20 +63,39 @@ class Progress extends HTMLElement {
   getActiveStepFromState() {
     return this._progressState.activeStep;
   }
-  setActiveStepInState(increment) {
-    this._progressState.activeStep = this._progressState.activeStep + increment;
-    this.dispatchProgressEvent();
+  setActiveStepInState() {
+    if (this._progressState.activeStep + this._stepIncrement > this._maxValue) {
+      this._progressState.activeStep = this._maxValue;
+    } else {
+      this._progressState.activeStep = this._progressState.activeStep + this._stepIncrement;
+    }
+    if (this._progressState.activeStep === this._maxValue && this.configs.removeOnComplete) {
+      this.removeProgressComponent();
+    } else {
+      this.dispatchProgressEvent();
+    }
   }
   startPageChangeListener() {
-    const mutationObserverCallback = (mutations, observer2) => {
+    let doLogic = false;
+    const mutationObserverCallback = async (mutations, observer2) => {
       for (const mutation of mutations) {
-        if (mutation.removedNodes.length > 0 && mutation.removedNodes[0].classList.contains("page")) {
-          document.dispatchEvent(new Event("progressBarUpdate"));
+        if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].classList.contains("page")) {
+          if (mutation.addedNodes[0].querySelector("form")) {
+            doLogic = true;
+            break;
+          }
         }
+      }
+      if (doLogic) {
+        await window.__customProgressBarMethods.createComponentArea();
+        document.dispatchEvent(new Event("progressBarUpdate"));
       }
     };
     const observer = new MutationObserver(mutationObserverCallback);
     observer.observe(document.querySelector(".survey"), { childList: true });
+  }
+  removeProgressComponent() {
+    this.parentElement.removeChild(this);
   }
   createGlobalStyles() {
     const globalStyles = `
@@ -108,8 +128,16 @@ class ProgressBar extends Progress {
     this.configs = window.__customProgressBarComponentTheme;
   }
   attributeChangedCallback(name, oldValue, newValue) {
-    const innerBar = this.shadow.querySelector(".progress-bar-inner");
-    const activeStepFromState = this.getActiveStepFromState();
+    const shadowRoot = this.shadowRoot;
+    const shadowRootChildren = [...shadowRoot.children];
+    let innerBarParent = shadowRootChildren.filter((child) => {
+      if (child.classList.contains("progress-wrapper")) {
+        return child.querySelector(".progress-bar-inner");
+      }
+    });
+    innerBarParent = innerBarParent[0];
+    const innerBar = innerBarParent.querySelector(".progress-bar-inner");
+    const activeStepFromState = this._percentcomplete;
     if (name === "percentcomplete") {
       this._percentcomplete = activeStepFromState;
       innerBar.style.width = activeStepFromState + "%";
@@ -126,10 +154,10 @@ class ProgressBar extends Progress {
   dispatchProgressEvent() {
     this._percentcomplete = Math.ceil(this.getActiveStepFromState());
     const progress = document.querySelector("progress-bar");
-    Math.floor(this.getActiveStepFromState());
+    Math.floor(this._percentcomplete);
     progress.setAttribute(
       "percentcomplete",
-      Math.ceil(this.getActiveStepFromState())
+      Math.ceil(this._percentcomplete)
     );
   }
   createStyles() {
@@ -139,11 +167,13 @@ class ProgressBar extends Progress {
       overflow: hidden;
     }
     .progress-bar {
-      width: 100%;
-      height: 12px;
+      width: 99%;
+      height: ${progressBarTheme.height}px;
       background-color: ${progressBarTheme.secondColor || "#F5F8F7"};
       border-radius: 10px;
       border: 1px solid #efefef;
+      margin: auto;
+      display:block;
     }
     .progress-bar-inner {
       height: 100%;
@@ -160,6 +190,7 @@ class ProgressBar extends Progress {
     return styleElement;
   }
   connectedCallback() {
+    console.log("connected callback");
     this.setConfigs();
     const shadow = this.attachShadow({ mode: "open" });
     const progressWrapper = document.createElement("div");
@@ -178,24 +209,53 @@ class ProgressBar extends Progress {
     shadow.prepend(this.createStyles());
     shadow.prepend(this.createGlobalStyles());
     this.shadow = shadow;
-    this.setActiveStepInState(this._stepIncrement);
+    this.setActiveStepInState();
     const webComponentClass = this;
     document.addEventListener("progressBarUpdate", function() {
-      if (webComponentClass.getActiveStepFromState() < webComponentClass._maxValue) {
-        webComponentClass.setActiveStepInState(
-          webComponentClass._stepIncrement
-        );
+      if (webComponentClass._percentcomplete < webComponentClass._maxValue) {
+        webComponentClass.setActiveStepInState();
       }
     });
     this.startPageChangeListener();
   }
 }
 customElements.define("progress-bar", ProgressBar);
-const initProgressComponent = (formControllers) => {
-  for (const control of formControllers) {
-    control.addEventListener("click", function() {
-      document.dispatchEvent(new Event("progressBarUpdate"));
-    });
-  }
+window.__customProgressBarMethods = {};
+window.__customProgressBarProps = {};
+const createProgressComponent = () => {
+  document.addEventListener("progressBarBeforeMount", async function(e) {
+    await createComponentArea(__customProgressBarMethods.progressElement);
+    document.body.appendChild(__customProgressBarMethods.progressElement);
+    const progressBarMounted = new Event("progressBarMounted");
+    document.dispatchEvent(progressBarMounted);
+  });
+  const progressBarBeforeMount = new Event("progressBarBeforeMount");
+  const progDiv = document.createElement("div");
+  progDiv.classList.add("progress-container");
+  progDiv.innerHTML = `<progress-bar data-max="100" data-steps="${__customProgressBarComponentTheme.steps}"></progress-bar>`;
+  __customProgressBarMethods.progressElement = progDiv;
+  document.dispatchEvent(progressBarBeforeMount);
 };
-window.initProgressComponent = initProgressComponent;
+const createComponentArea = () => {
+  return new Promise((resolve, reject) => {
+    const anchorPoint = document.querySelector(
+      __customProgressBarComponentTheme.anchorPoint
+    );
+    const placeholderSpacingDiv = document.createElement("div");
+    placeholderSpacingDiv.setAttribute("style", `height:${window.__customProgressBarComponentTheme.progressBar.height * 4}px;display:block;`);
+    anchorPoint.style.marginBottom = `${window.__customProgressBarComponentTheme.progressBar.height * 4}px`;
+    setTimeout(() => {
+      const anchorPointRect = anchorPoint.getBoundingClientRect();
+      anchorPoint.parentNode.insertBefore(placeholderSpacingDiv, anchorPoint.nextElementSibling);
+      const offset = anchorPointRect.top + anchorPointRect.height + placeholderSpacingDiv.getBoundingClientRect().height / 2 - window.__customProgressBarComponentTheme.progressBar.height / 2;
+      __customProgressBarMethods.progressElement.setAttribute(
+        "style",
+        `position:absolute;top:${offset}px;width:70%;left: 15%;`
+      );
+      anchorPoint.style.marginBottom = ``;
+    }, 500);
+    resolve();
+  });
+};
+window.__customProgressBarMethods.createProgressComponent = createProgressComponent;
+window.__customProgressBarMethods.createComponentArea = createComponentArea;

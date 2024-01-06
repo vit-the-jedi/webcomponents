@@ -12,6 +12,7 @@ class Progress extends HTMLElement {
     this._progressState = {};
     this._progressState.activeStep = 0;
     this._progressState.steps = new Map();
+    this.progressElement = null;
   }
   getConfigs(elementType){
     return this.configs[elementType];
@@ -28,21 +29,63 @@ class Progress extends HTMLElement {
   getActiveStepFromState(){
     return this._progressState.activeStep;
   }
-  setActiveStepInState(increment){
-    this._progressState.activeStep = this._progressState.activeStep + increment;
-    this.dispatchProgressEvent();
+  async componentIsMounted(){
+    console.trace();
+    return new Promise((resolve)=>{
+      resolve();
+    })
   }
-  startPageChangeListener(){
-    const mutationObserverCallback = (mutations, observer) =>{
+  setActiveStepInState(){
+    if(this._progressState.activeStep + this._stepIncrement > this._maxValue){
+      this._progressState.activeStep = this._maxValue;
+    }else {
+      this._progressState.activeStep = this._progressState.activeStep + this._stepIncrement;
+    }
+
+    if(this._progressState.activeStep === this._maxValue && this.configs.removeOnComplete){
+      this.removeProgressComponent();
+    }else {
+      // this.componentIsMounted().then((isMounted)=>{
+       
+      // });
+      this.dispatchProgressEvent();
+    }
+  }
+  getState(){
+    const state = {
+      _maxValue: this._maxValue,
+      _numOfSteps: this._numOfSteps,
+      _percentcomplete: this._percentcomplete,
+      _progressState: this._progressState,
+      _stepIncrement: this._stepIncrement,
+      configs: this.configs,
+    }
+    return state;
+  }
+  startPageChangeListener() {
+    let doLogic = false;
+    //this is probably calling too many times
+    //go in debug mode and put a break point on the active step in state getter, its called like 4 times a cycle
+    const mutationObserverCallback = async (mutations, observer) =>{
       for (const mutation of mutations) {
-        if(mutation.removedNodes.length > 0 && mutation.removedNodes[0].classList.contains("page")){
-          //dispatch progress event
-          document.dispatchEvent(new Event("progressBarUpdate"));
+        if(mutation.addedNodes.length > 0 && mutation.addedNodes[0].classList.contains("page")){
+          if(mutation.addedNodes[0].querySelector("form")){
+            doLogic = true;
+          break;
+          }
         }
+      }
+      if(doLogic){
+        await window.__customProgressBarMethods.createComponentArea();
+        //dispatch progress event
+        document.dispatchEvent(new Event("progressBarUpdate"));
       }
     }
     const observer = new MutationObserver(mutationObserverCallback);
     observer.observe(document.querySelector(".survey"), { childList:true});
+  }
+  removeProgressComponent(){
+    this.parentElement.removeChild(this);
   }
   createGlobalStyles(){
     const globalStyles = `
