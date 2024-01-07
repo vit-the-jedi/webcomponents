@@ -2,28 +2,18 @@
 
 import { Progress } from "../../../globals/classes/progress.js";
 
-class ProgressBar extends Progress {
+export default class ProgressBar extends Progress {
   constructor() {
     super();
-    this._maxValue = Number(this.getAttribute("data-max"));
-    this._numOfSteps = Number(this.getAttribute("data-steps"));
-    this._stepIncrement = this._maxValue / this._numOfSteps;
   }
   static get observedAttributes() {
     return ["percentcomplete"];
   }
-  setConfigs(configs = null){
-    if(!configs){
-      this.configs = window.__customProgressBarComponentTheme;
-    }else {
-      this.configs = configs
-    }
-  }
   attributeChangedCallback(name, oldValue, newValue) {
     const shadowRoot = this.shadowRoot;
     const shadowRootChildren = [...shadowRoot.children];
-    let innerBarParent = shadowRootChildren.filter((child)=> {
-      if(child.classList.contains("progress-wrapper")){
+    let innerBarParent = shadowRootChildren.filter((child) => {
+      if (child.classList.contains("progress-wrapper")) {
         return child.querySelector(".progress-bar-inner");
       }
     });
@@ -45,26 +35,15 @@ class ProgressBar extends Progress {
       this.setAttribute("percentcomplete", val);
     }
   }
-  dispatchProgressEvent() {
-    console.trace();
-    this._percentcomplete = Math.ceil(this.getActiveStepFromState());
-    const progress = document.querySelector("progress-bar");
-    const formattedActiveState = Math.floor(this._percentcomplete);
-    progress.setAttribute(
-      "percentcomplete",
-      Math.ceil(this._percentcomplete)
-    );
-  }
   createStyles() {
-    const progressBarTheme = this.getConfigs("progressBar");
     const styles = `
     .progress-wrapper {
       overflow: hidden;
     }
     .progress-bar {
       width: 99%;
-      height: ${progressBarTheme.height}px;
-      background-color: ${progressBarTheme.secondColor || "#F5F8F7"};
+      height: ${this.getConfigs("height")}px;
+      background-color: ${this.getConfigs("secondColor") || "#F5F8F7"};
       border-radius: 10px;
       border: 1px solid #efefef;
       margin: auto;
@@ -73,7 +52,7 @@ class ProgressBar extends Progress {
     .progress-bar-inner {
       height: 100%;
       line-height: 30px;
-      background: ${progressBarTheme.mainColor || '#66c296 '};
+      background: ${this.getConfigs("mainColor") || "#66c296 "};
       text-align: center;
       transition: width 0.25s;
       border-radius: 10px;
@@ -84,73 +63,77 @@ class ProgressBar extends Progress {
     styleElement.textContent = styles;
     return styleElement;
   }
-  initFromLastKnownState(lastKnownState){
-    this.setConfigs(lastKnownState.configs);
-    this._percentcomplete = lastKnownState._percentcomplete;
-    this._numOfSteps = lastKnownState._numOfSteps;
-    this._maxValue = lastKnownState._maxValue;
-    this._stepIncrement = lastKnownState._stepIncrement;
-    __customProgressBarMethods.createProgressComponent();
-    this.componentIsMounted().then((isMounted)=>{
-       this.generateComponentShadow();
+  createComponentArea() {
+    return new Promise((resolve, reject) => {
+      const anchorPoint = document.querySelector(
+        this.getConfigs("anchorPoint")
+      );
+      const placeholderSpacingDiv = document.createElement("div");
+      placeholderSpacingDiv.setAttribute(
+        "style",
+        `height:${
+          this.getConfigs("height") * 4
+        }px;display:block;`
+      );
+      anchorPoint.style.marginBottom = `${
+        this.getConfigs("height") * 4
+      }px`;
+      setTimeout(() => {
+        const anchorPointRect = anchorPoint.getBoundingClientRect();
+        anchorPoint.parentNode.insertBefore(
+          placeholderSpacingDiv,
+          anchorPoint.nextElementSibling
+        );
+        const offset =
+          anchorPointRect.top +
+          anchorPointRect.height +
+          placeholderSpacingDiv.getBoundingClientRect().height / 2 -
+          this.getConfigs("height")/ 2;
+        this.setAttribute(
+          "style",
+          `position:absolute;top:${offset}px;width:70%;left: 15%;`
+        );
+        anchorPoint.style.marginBottom = ``;
+      }, 500);
+      resolve();
     });
-   
   }
-  generateComponentShadow(){
-    // Create a shadow root
-    const shadow = this.attachShadow({ mode: "open" });
-  
-    const progressWrapper = document.createElement("div");
-    progressWrapper.classList.add("progress-wrapper");
-
-    const bar = document.createElement("div");
-    bar.classList.add("progress-bar");
-    bar.max = this.getAttribute("data-max");
-    bar.value = this.getAttribute("data-value");
-    bar.id = "progress-bar-component";
-    const barInner = document.createElement("div");
-    barInner.classList.add("progress-bar-inner");
-
-    barInner.style.width = `0%`;
-
-    bar.appendChild(barInner);
-
-    progressWrapper.appendChild(bar);
-    shadow.appendChild(progressWrapper);
-    shadow.prepend(this.createStyles());
-    shadow.prepend(this.createGlobalStyles());
-    this.shadow = shadow;
-    this.setActiveStepInState();
-
-    const webComponentClass = this;
-    document.addEventListener("progressBarUpdate", function () {
-      if (
-        webComponentClass._percentcomplete < webComponentClass._maxValue
-      ) {
-        webComponentClass.setActiveStepInState();
-      }
-    });
-    this.startPageChangeListener();
+  createProgressBarComponent(configs) {
+    const savedState = JSON.parse(sessionStorage.getItem("custom-component__state"));
+    if(savedState){
+      this.initFromLastKnownState(savedState);
+    }else {
+      this.initState(configs);
+    }
+    this.registerEvents();
+    const progDiv = document.createElement("div");
+    progDiv.classList.add("progress-container");
+    this.setAttribute("data-max", "100");
+    this.setAttribute("data-steps", this.getConfigs("steps"));
+    document.dispatchEvent(new Event("componentCreated"));
   }
   connectedCallback() {
-    const savedState = sessionStorage.getItem("progress-bar-state");
-    if(savedState){
-      this.initFromLastKnownState(JSON.parse(savedState));
-      sessionStorage.removeItem("progress-bar-state");
+
+    //may need to begin all logic in here - as the issue stems from the leadID version of the progress-bar 
+    //being added to the page without first calling the createProgressComponent
+    if(this._progressState){
+      this.log("component connected");
+      this.log(this);
+      document.dispatchEvent(new Event("componentMounted"));
+      this.connected = true;
     }else {
-      this.setConfigs();
-      this.generateComponentShadow();
+      this.removeComponent();
     }
   }
-  disconnectedCallback(){
+  disconnectedCallback() {
+    this.log("component disconnected");
     const currentState = this.getState();
-    sessionStorage.setItem("progress-bar-state", JSON.stringify(currentState));
+    if(currentState._progressState){
+      sessionStorage.setItem("custom-component__state", JSON.stringify(currentState));
+    }
   }
 }
 
 customElements.define("progress-bar", ProgressBar);
-
-
-
 
 export { ProgressBar };

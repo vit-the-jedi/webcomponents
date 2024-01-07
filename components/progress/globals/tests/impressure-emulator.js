@@ -43,10 +43,14 @@ progressBtn.addEventListener("click", function () {
   const rand = (Math.random() * 10);
   console.log(rand);
   const prog = document.querySelector("progress-bar");
+  const prog2 = prog.cloneNode();
   if(rand >= 4 && prog){
-  prog.parentElement.removeChild(prog);
+  setTimeout(()=>{
+    document.body.appendChild(prog2);
+  },1000)
+
   }
-  document.dispatchEvent(new Event("progressBarUpdate"))
+  document.dispatchEvent(new Event("componentUpdate"))
 });
 
 

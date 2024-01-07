@@ -25,19 +25,17 @@
           style="height: 55px; background: blue; margin-bottom: 20px"
         ></div>
         <div class="formheader" style="height: 100px; background: purple"></div>
-        <form id="generic-form" style="height:300px;background:red"></form>
+        <form id="generic-form" style="height: 300px; background: red"></form>
       </div>
     </div>
-    <div
-    >
+    <div>
       <!-- <progress-step data-steps="5"></progress-step>
     <button id="click">CLICK TO UPDATE PROGRESS STEP</button> -->
       <!-- <progress-bar data-max="100" data-steps="16"></progress-bar> -->
       <button id="bar">CLICK TO UPDATE PROGRESS BAR</button>
       <!-- <script type="module" id="progress-step-entry" src="components/progress/progress-step/init.js"></script> -->
-      <script
-        src="components/progress/globals/tests/impressure-emulator.js"
-      ></script>
+      <script src="components/progress/globals/tests/impressure-emulator.js"></script>
+      <iframe id="hello"></iframe>
       <!-- <script>
       const progressStepEntryPoint = document.querySelector(
         "#progress-step-entry"
@@ -55,22 +53,18 @@
       };
     </script> -->
       <script>
-            //js
-          window.__customProgressBarComponentTheme = {
-            progressBar: {
-              font: "sans-serif",
+        setTimeout(() => {
+          __customProgressBarMethods.initProgressComponent({
+            font: "sans-serif",
               //made it this way for now to make it easier - can't think of a better way at the moment
-              height: 12,
-            },
+            height: 12,
             transitionDuration: 500,
-            anchorPoint: '.formheader',
+            anchorPoint: ".formheader",
             steps: 11,
             removeOnComplete: true,
-          };
-
-            setTimeout(()=>{
-              __customProgressBarMethods.createProgressComponent();
-            },2000)
+            _devMode:true
+          });
+        }, 500);
       </script>
     </div>
   </body>
