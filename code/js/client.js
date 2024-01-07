@@ -133,17 +133,17 @@ class Progress extends HTMLElement {
   eventDispatcher(eventType) {
     switch (eventType) {
       case "componentCreated":
-        this.createComponentArea().then(() => {
-          this.appendComponent();
-          this.setActiveStepInState();
-        });
         break;
       case "componentBeforeMount":
-        this._maxValue = Number(this.getAttribute("data-max"));
-        this._numOfSteps = Number(this.getAttribute("data-steps"));
-        this._stepIncrement = this._maxValue / this._numOfSteps;
         break;
       case "componentMounted":
+        this.createProgressBarComponent();
+        this.createComponentArea().then(() => {
+          this._maxValue = Number(this.getAttribute("data-max"));
+          this._numOfSteps = Number(this.getAttribute("data-steps"));
+          this._stepIncrement = this._maxValue / this._numOfSteps;
+          this.setActiveStepInState();
+        });
         this.startPageChangeListener();
         break;
       case "componentUnmounted":
@@ -159,7 +159,7 @@ class Progress extends HTMLElement {
         break;
     }
   }
-  appendComponent() {
+  createShadow() {
     const component = this;
     const shadow = component.attachShadow({ mode: "open" });
     const progressWrapper = document.createElement("div");
@@ -193,7 +193,6 @@ class Progress extends HTMLElement {
         }
       }
       if (doLogic) {
-        await this.createComponentArea();
         document.dispatchEvent(new Event("componentUpdate"));
       }
     };
@@ -201,8 +200,10 @@ class Progress extends HTMLElement {
     observer.observe(document.querySelector(".survey"), { childList: true });
   }
   removeComponent() {
-    this.parentElement.removeChild(this);
-    document.dispatchEvent(new Event("componentUnmounted"));
+    if (this && this.parentElement) {
+      this.parentElement.removeChild(this);
+      document.dispatchEvent(new Event("componentUnmounted"));
+    }
   }
   createGlobalStyles() {
     const globalStyles = `
@@ -229,6 +230,7 @@ class ProgressBar extends Progress {
     return ["percentcomplete"];
   }
   attributeChangedCallback(name, oldValue, newValue) {
+    console.trace();
     const shadowRoot = this.shadowRoot;
     const shadowRootChildren = [...shadowRoot.children];
     let innerBarParent = shadowRootChildren.filter((child) => {
@@ -275,6 +277,7 @@ class ProgressBar extends Progress {
       border-radius: 10px;
     }
 
+
         `;
     const styleElement = document.createElement("style");
     styleElement.textContent = styles;
@@ -298,38 +301,51 @@ class ProgressBar extends Progress {
           anchorPoint.nextElementSibling
         );
         const offset = anchorPointRect.top + anchorPointRect.height + placeholderSpacingDiv.getBoundingClientRect().height / 2 - this.getConfigs("height") / 2;
-        this.setAttribute(
-          "style",
-          `position:absolute;top:${offset}px;width:70%;left: 15%;`
-        );
+        this.setAttribute("style", `position:absolute;
+          top:${offset}px;
+          width:70%;
+          left: 15%;`);
         anchorPoint.style.marginBottom = ``;
       }, 500);
       resolve();
     });
   }
-  createProgressBarComponent(configs) {
-    const savedState = JSON.parse(sessionStorage.getItem("custom-component__state"));
-    if (savedState) {
-      this.initFromLastKnownState(savedState);
-    } else {
-      this.initState(configs);
-    }
-    this.registerEvents();
+  init(configs) {
+    JSON.parse(sessionStorage.getItem("custom-component__state"));
+    this.initState(configs);
+    document.body.appendChild(this);
+  }
+  createProgressBarComponent() {
     const progDiv = document.createElement("div");
     progDiv.classList.add("progress-container");
     this.setAttribute("data-max", "100");
     this.setAttribute("data-steps", this.getConfigs("steps"));
+    this.shadow.prepend(this.createGlobalStyles());
+    this.shadow.prepend(this.createStyles());
     document.dispatchEvent(new Event("componentCreated"));
   }
   connectedCallback() {
-    if (this._progressState) {
-      this.log("component connected");
-      this.log(this);
-      document.dispatchEvent(new Event("componentMounted"));
-      this.connected = true;
-    } else {
-      this.removeComponent();
+    console.trace();
+    this.registerEvents();
+    if (!this.classList.contains("component-positioned")) {
+      this.classList.add("component-positioned");
     }
+    const shadow = this.attachShadow({ mode: "open" });
+    const progressWrapper = document.createElement("div");
+    progressWrapper.classList.add("progress-wrapper");
+    const bar = document.createElement("div");
+    bar.classList.add("progress-bar");
+    bar.max = this.getAttribute("data-max");
+    bar.value = this.getAttribute("data-value");
+    bar.id = "progress-bar-component";
+    const barInner = document.createElement("div");
+    barInner.classList.add("progress-bar-inner");
+    barInner.style.width = `0%`;
+    bar.appendChild(barInner);
+    progressWrapper.appendChild(bar);
+    shadow.appendChild(progressWrapper);
+    this.shadow = shadow;
+    document.dispatchEvent(new Event("componentMounted"));
   }
   disconnectedCallback() {
     this.log("component disconnected");
@@ -343,6 +359,6 @@ customElements.define("progress-bar", ProgressBar);
 window.__customProgressBarMethods = {};
 const initProgressComponent = (userConfigs) => {
   const progressBar = new ProgressBar();
-  progressBar.createProgressBarComponent(userConfigs);
+  progressBar.init(userConfigs);
 };
 window.__customProgressBarMethods.initProgressComponent = initProgressComponent;

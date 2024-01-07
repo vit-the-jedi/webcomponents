@@ -5,7 +5,7 @@ window.__customProgressBarMethods = {};
 
 const initProgressComponent = (userConfigs) => {
   const progressBar = new ProgressBar();
-  progressBar.createProgressBarComponent(userConfigs);
+  progressBar.init(userConfigs);
 };
 
 window.__customProgressBarMethods.initProgressComponent = initProgressComponent;

@@ -19,11 +19,14 @@ const createForm = () => {
 
 const createPageHandler = () => {
   const survey = document.querySelector(".survey");
-  const snapshot = [...survey.querySelector(".container-fluid").children];
+  const snapshot = [...survey.querySelector(".page").children];
 
   survey.innerHTML = "";
 
   setTimeout(() => {
+    const page = createNode("div", {
+      class: "page"
+    })
     const container = createNode("div", {
         class: "container-fluid",
     })
@@ -32,25 +35,26 @@ const createPageHandler = () => {
             snap.style.paddingTop = `${Math.random() * 100}px`;
         }
       container.appendChild(snap);
+      page.appendChild(container)
     });
-    survey.appendChild(container);
+    survey.appendChild(page);
   }, 500);
 };
 
 const progressBtn = document.getElementById("bar");
 progressBtn.addEventListener("click", function () {
   createPageHandler();
-  const rand = (Math.random() * 10);
-  console.log(rand);
-  const prog = document.querySelector("progress-bar");
-  const prog2 = prog.cloneNode();
-  if(rand >= 4 && prog){
-  setTimeout(()=>{
-    document.body.appendChild(prog2);
-  },1000)
+  // const rand = (Math.random() * 10);
+  // console.log(rand);
+  // const prog = document.querySelector("progress-bar");
+  // const prog2 = prog.cloneNode();
+  // if(rand >= 4 && prog){
+  // setTimeout(()=>{
+  //   document.body.appendChild(prog2);
+  // },1000)
 
-  }
-  document.dispatchEvent(new Event("componentUpdate"))
+  // }
+  //document.dispatchEvent(new Event("componentUpdate"))
 });
 
 

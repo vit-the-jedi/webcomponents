@@ -101,19 +101,22 @@ class Progress extends HTMLElement {
     switch(eventType){
       case "componentCreated":
         //fire logic that needs to run AFTER component is created
-        this.createComponentArea().then(()=>{
-          this.appendComponent();
-          this.setActiveStepInState();
-        });
+        
         break;
         case "componentBeforeMount":
           //fire logic that needs to run before component begins mounting
-          this._maxValue = Number(this.getAttribute("data-max"));
-          this._numOfSteps = Number(this.getAttribute("data-steps"));
-          this._stepIncrement = this._maxValue / this._numOfSteps;
+          
         break;
         case "componentMounted":
           //fire logic that needs to run AFTER component is finished mounting
+          this.createProgressBarComponent();
+          this.createComponentArea().then(()=>{
+            this._maxValue = Number(this.getAttribute("data-max"));
+            this._numOfSteps = Number(this.getAttribute("data-steps"));
+            this._stepIncrement = this._maxValue / this._numOfSteps;
+            this.setActiveStepInState();
+          });
+
           this.startPageChangeListener();
         break;
         case "componentUnmounted":
@@ -132,7 +135,7 @@ class Progress extends HTMLElement {
           break;
     }
   }
-  appendComponent(){
+  createShadow(){
     const component = this;
     // Create a shadow root
     const shadow = component.attachShadow({ mode: "open" });
@@ -174,7 +177,6 @@ class Progress extends HTMLElement {
         }
       }
       if(doLogic){
-        await this.createComponentArea();
         //dispatch progress event
         document.dispatchEvent(new Event("componentUpdate"));
       }
@@ -183,8 +185,10 @@ class Progress extends HTMLElement {
     observer.observe(document.querySelector(".survey"), { childList:true});
   }
   removeComponent(){
-    this.parentElement.removeChild(this);
-    document.dispatchEvent(new Event("componentUnmounted"));
+    if(this && this.parentElement){
+      this.parentElement.removeChild(this);
+      document.dispatchEvent(new Event("componentUnmounted"));
+    }
   }
   createGlobalStyles(){
     const globalStyles = `
