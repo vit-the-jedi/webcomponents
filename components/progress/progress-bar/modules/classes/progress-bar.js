@@ -120,12 +120,13 @@ export default class ProgressBar extends Progress {
     document.dispatchEvent(new Event("componentCreated"));
   }
   connectedCallback() {
-    console.trace();
     this.registerEvents();
+    if (this.classList.contains("LeadiD-ignore-mutation")){
+      return;
+    }
     if(!this.classList.contains("component-positioned")){
       this.classList.add("component-positioned");
-    }
-    // Create a shadow root
+      // Create a shadow root
     const shadow = this.attachShadow({ mode: "open" });
 
     const progressWrapper = document.createElement("div");
@@ -148,6 +149,9 @@ export default class ProgressBar extends Progress {
     this.shadow = shadow;
 
     document.dispatchEvent(new Event("componentMounted"));
+    }else {
+      return;
+    }
     //may need to begin all logic in here - as the issue stems from the leadID version of the progress-bar 
     //being added to the page without first calling the createProgressComponent
     // if(this._progressState){

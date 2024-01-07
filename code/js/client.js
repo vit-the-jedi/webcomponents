@@ -91,6 +91,7 @@ class Progress extends HTMLElement {
     } else {
       this._progressState.activeStep = this._progressState.activeStep + this._stepIncrement;
     }
+    this.log(this._progressState.activeStep);
     if (this._progressState.activeStep === this._maxValue && this.configs.removeOnComplete) {
       this.removeComponent();
     } else {
@@ -125,12 +126,15 @@ class Progress extends HTMLElement {
     document.addEventListener("componentUpdate", function(ev, data) {
       component.eventDispatcher(ev.type, data);
     });
+    document.addEventListener("componentStepValueChange", function(ev, data) {
+      component.eventDispatcher(ev.type, ev.addedSteps);
+    });
   }
   updateComponent() {
     this._percentcomplete = Math.ceil(this.getActiveStepFromState());
     this.setAttribute("percentcomplete", Math.ceil(this._percentcomplete));
   }
-  eventDispatcher(eventType) {
+  eventDispatcher(eventType, data) {
     switch (eventType) {
       case "componentCreated":
         break;
@@ -156,6 +160,10 @@ class Progress extends HTMLElement {
         break;
       case "componentUnmounted":
         this.createProgressBarComponent();
+        break;
+      case "componentStepValueChange":
+        this._numOfSteps = this._numOfSteps + data;
+        this._stepIncrement = this._maxValue / this._numOfSteps;
         break;
     }
   }
@@ -193,6 +201,7 @@ class Progress extends HTMLElement {
         }
       }
       if (doLogic) {
+        this.createComponentArea();
         document.dispatchEvent(new Event("componentUpdate"));
       }
     };
@@ -325,27 +334,31 @@ class ProgressBar extends Progress {
     document.dispatchEvent(new Event("componentCreated"));
   }
   connectedCallback() {
-    console.trace();
     this.registerEvents();
+    if (this.classList.contains("LeadiD-ignore-mutation")) {
+      return;
+    }
     if (!this.classList.contains("component-positioned")) {
       this.classList.add("component-positioned");
+      const shadow = this.attachShadow({ mode: "open" });
+      const progressWrapper = document.createElement("div");
+      progressWrapper.classList.add("progress-wrapper");
+      const bar = document.createElement("div");
+      bar.classList.add("progress-bar");
+      bar.max = this.getAttribute("data-max");
+      bar.value = this.getAttribute("data-value");
+      bar.id = "progress-bar-component";
+      const barInner = document.createElement("div");
+      barInner.classList.add("progress-bar-inner");
+      barInner.style.width = `0%`;
+      bar.appendChild(barInner);
+      progressWrapper.appendChild(bar);
+      shadow.appendChild(progressWrapper);
+      this.shadow = shadow;
+      document.dispatchEvent(new Event("componentMounted"));
+    } else {
+      return;
     }
-    const shadow = this.attachShadow({ mode: "open" });
-    const progressWrapper = document.createElement("div");
-    progressWrapper.classList.add("progress-wrapper");
-    const bar = document.createElement("div");
-    bar.classList.add("progress-bar");
-    bar.max = this.getAttribute("data-max");
-    bar.value = this.getAttribute("data-value");
-    bar.id = "progress-bar-component";
-    const barInner = document.createElement("div");
-    barInner.classList.add("progress-bar-inner");
-    barInner.style.width = `0%`;
-    bar.appendChild(barInner);
-    progressWrapper.appendChild(bar);
-    shadow.appendChild(progressWrapper);
-    this.shadow = shadow;
-    document.dispatchEvent(new Event("componentMounted"));
   }
   disconnectedCallback() {
     this.log("component disconnected");

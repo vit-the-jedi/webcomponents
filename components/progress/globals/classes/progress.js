@@ -57,7 +57,7 @@ class Progress extends HTMLElement {
     }else {
       this._progressState.activeStep = this._progressState.activeStep + this._stepIncrement;
     }
-
+    this.log(this._progressState.activeStep)
     if(this._progressState.activeStep === this._maxValue && this.configs.removeOnComplete){
       this.removeComponent();
     }else {
@@ -92,12 +92,16 @@ class Progress extends HTMLElement {
     document.addEventListener("componentUpdate", function(ev, data){
       component.eventDispatcher(ev.type, data);
     });
+    //experimental - for dealing with dynamic steps
+    document.addEventListener("componentStepValueChange", function(ev, data){
+      component.eventDispatcher(ev.type, ev.addedSteps);
+    });
   }
   updateComponent() {
     this._percentcomplete = Math.ceil(this.getActiveStepFromState());
     this.setAttribute("percentcomplete", Math.ceil(this._percentcomplete));
   }
-  eventDispatcher(eventType){
+  eventDispatcher(eventType, data){
     switch(eventType){
       case "componentCreated":
         //fire logic that needs to run AFTER component is created
@@ -133,6 +137,13 @@ class Progress extends HTMLElement {
           //fire logic on component updates
           this.createProgressBarComponent();
           break;
+          //havent tested this yet
+          //hoping that updating the value in state is enough
+          //need to send the event and the data
+          case "componentStepValueChange":
+            this._numOfSteps = this._numOfSteps + data;
+            this._stepIncrement = this._maxValue / this._numOfSteps;
+            break;
     }
   }
   createShadow(){
@@ -177,6 +188,7 @@ class Progress extends HTMLElement {
         }
       }
       if(doLogic){
+        this.createComponentArea();
         //dispatch progress event
         document.dispatchEvent(new Event("componentUpdate"));
       }
