@@ -335,7 +335,7 @@ class ProgressBar extends Progress {
   }
   connectedCallback() {
     this.registerEvents();
-    if (this.classList.contains("LeadiD-ignore-mutation")) {
+    if (!this._progressState) {
       return;
     }
     if (!this.classList.contains("component-positioned")) {

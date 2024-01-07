@@ -121,7 +121,7 @@ export default class ProgressBar extends Progress {
   }
   connectedCallback() {
     this.registerEvents();
-    if (this.classList.contains("LeadiD-ignore-mutation")){
+    if (!this._progressState){
       return;
     }
     if(!this.classList.contains("component-positioned")){
@@ -154,14 +154,6 @@ export default class ProgressBar extends Progress {
     }
     //may need to begin all logic in here - as the issue stems from the leadID version of the progress-bar 
     //being added to the page without first calling the createProgressComponent
-    // if(this._progressState){
-    //   this.log("component connected");
-    //   this.log(this);
-    //   document.dispatchEvent(new Event("componentMounted"));
-    //   this.connected = true;
-    // }else {
-    //   this.removeComponent();
-    // }
   }
   disconnectedCallback() {
     this.log("component disconnected");
