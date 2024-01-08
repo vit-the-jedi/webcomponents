@@ -292,35 +292,49 @@ class ProgressBar extends Progress {
     styleElement.textContent = styles;
     return styleElement;
   }
-  createComponentArea() {
+  getAnchorPoint(configAnchorPoint) {
     return new Promise((resolve, reject) => {
-      const anchorPoint = document.querySelector(
-        this.getConfigs("anchorPoint")
-      );
+      function checkElement() {
+        const element = document.querySelector(configAnchorPoint);
+        if (element) {
+          clearInterval(intervalId);
+          resolve(element);
+        }
+      }
+      const intervalId = setInterval(checkElement, 50);
+    });
+  }
+  createComponentArea() {
+    return new Promise(async (resolve, reject) => {
       const placeholderSpacingDiv = document.createElement("div");
       placeholderSpacingDiv.setAttribute(
         "style",
         `height:${this.getConfigs("height") * 4}px;display:block;`
       );
+      const anchorPoint = await this.getAnchorPoint(this.getConfigs("anchorPoint"));
       anchorPoint.style.marginBottom = `${this.getConfigs("height") * 4}px`;
-      setTimeout(() => {
-        const anchorPointRect = anchorPoint.getBoundingClientRect();
-        anchorPoint.parentNode.insertBefore(
-          placeholderSpacingDiv,
-          anchorPoint.nextElementSibling
-        );
-        const offset = anchorPointRect.top + anchorPointRect.height + placeholderSpacingDiv.getBoundingClientRect().height / 2 - this.getConfigs("height") / 2;
-        this.setAttribute("style", `position:absolute;
-          top:${offset}px;
-          width:70%;
-          left: 15%;`);
-        anchorPoint.style.marginBottom = ``;
-      }, 500);
+      const anchorPointRect = anchorPoint.getBoundingClientRect();
+      anchorPoint.parentNode.insertBefore(
+        placeholderSpacingDiv,
+        anchorPoint.nextElementSibling
+      );
+      const offset = anchorPointRect.top + anchorPointRect.height + placeholderSpacingDiv.getBoundingClientRect().height;
+      this._offset = offset;
+      this.setAttribute(
+        "style",
+        `position:absolute;
+              top:${offset}px;
+              width:70%;
+              left: 15%;`
+      );
+      anchorPoint.style.marginBottom = ``;
       resolve();
     });
   }
   init(configs) {
-    JSON.parse(sessionStorage.getItem("custom-component__state"));
+    JSON.parse(
+      sessionStorage.getItem("custom-component__state")
+    );
     this.initState(configs);
     document.body.appendChild(this);
   }
@@ -364,14 +378,17 @@ class ProgressBar extends Progress {
     this.log("component disconnected");
     const currentState = this.getState();
     if (currentState._progressState) {
-      sessionStorage.setItem("custom-component__state", JSON.stringify(currentState));
+      sessionStorage.setItem(
+        "custom-component__state",
+        JSON.stringify(currentState)
+      );
     }
   }
 }
 customElements.define("progress-bar", ProgressBar);
-window.__customProgressBarMethods = {};
 const initProgressComponent = (userConfigs) => {
   const progressBar = new ProgressBar();
   progressBar.init(userConfigs);
 };
-window.__customProgressBarMethods.initProgressComponent = initProgressComponent;
+window.__customProgressBarMethods = {};
+window.initProgressComponent = initProgressComponent;
