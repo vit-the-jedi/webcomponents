@@ -3,7 +3,7 @@ import { Progress } from "../globals/classes/progress.js";
 
   const initProgressComponent = (userConfigs) => {
     const progressBar = new ProgressBar();
-    progressBar.init(userConfigs);
+    progressBar.init(userConfigs, progressBar.initState.bind(progressBar));
   };
   window.__customProgressBarMethods = {};
   window.initProgressComponent =

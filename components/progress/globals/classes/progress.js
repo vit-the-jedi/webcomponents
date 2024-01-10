@@ -8,14 +8,14 @@
 class Progress extends HTMLElement {
   constructor() {
     super();
-    this._devMode = true
+    this._devMode = true;
   }
-  log(msg){
-    if(this._devMode){
+  log(msg) {
+    if (this._devMode) {
       console.log(msg);
     }
   }
-  initState(configs){
+  initState(configs) {
     this.log("component initialized");
     this.configs = configs;
     this._progressState = {};
@@ -25,46 +25,54 @@ class Progress extends HTMLElement {
   }
   initFromLastKnownState(lastKnownState) {
     this.log("component initialized from last known state");
-    this.log(lastKnownState)
+    this.log(lastKnownState);
+    this.registerEvents();
     this.setConfigs(lastKnownState.configs);
     this._percentcomplete = lastKnownState._percentcomplete;
     this._numOfSteps = lastKnownState._numOfSteps;
     this._maxValue = lastKnownState._maxValue;
     this._stepIncrement = lastKnownState._stepIncrement;
     this._progressState = lastKnownState._progressState;
+    this.shadow.prepend(this.createGlobalStyles());
+    this.shadow.prepend(this.createStyles());
+    this.setActiveStepInState();
   }
   setConfigs(configs) {
     this.configs = configs;
   }
-  getConfigs(property){
+  getConfigs(property) {
     return this.configs[property];
   }
-  setStepToList(stepIndex, step){
+  setStepToList(stepIndex, step) {
     this._progressState.steps.set(stepIndex, step);
   }
-  getStepFromList(stepIndex){
+  getStepFromList(stepIndex) {
     return this._progressState.steps.get(stepIndex);
   }
-  getStepsListFromState(){
+  getStepsListFromState() {
     return this._progressState.steps;
   }
-  getActiveStepFromState(){
+  getActiveStepFromState() {
     return this._progressState.activeStep;
   }
-  setActiveStepInState(){
-    if(this._progressState.activeStep + this._stepIncrement > this._maxValue){
+  setActiveStepInState() {
+    if (this._progressState.activeStep + this._stepIncrement > this._maxValue) {
       this._progressState.activeStep = this._maxValue;
-    }else {
-      this._progressState.activeStep = this._progressState.activeStep + this._stepIncrement;
+    } else {
+      this._progressState.activeStep =
+        this._progressState.activeStep + this._stepIncrement;
     }
-    this.log(this._progressState.activeStep)
-    if(this._progressState.activeStep === this._maxValue && this.configs.removeOnComplete){
+    this.log(this._progressState.activeStep);
+    if (
+      this._progressState.activeStep === this._maxValue &&
+      this.configs.removeOnComplete
+    ) {
       this.removeComponent();
-    }else {
+    } else {
       this.updateComponent();
     }
   }
-  getState(){
+  getState() {
     const state = {
       _maxValue: this._maxValue,
       _numOfSteps: this._numOfSteps,
@@ -72,28 +80,25 @@ class Progress extends HTMLElement {
       _progressState: this._progressState,
       _stepIncrement: this._stepIncrement,
       configs: this.configs,
-    }
+    };
     return state;
   }
-  registerEvents(){
+  registerEvents() {
     const component = this;
-    document.addEventListener("componentCreated", function(ev, data){
+    document.addEventListener("componentCreated", function (ev, data) {
       component.eventDispatcher(ev.type, data);
     });
-    document.addEventListener("componentBeforeMount", function(ev, data){
+    document.addEventListener("componentBeforeMount", function (ev, data) {
       component.eventDispatcher(ev.type, data);
     });
-    document.addEventListener("componentMounted", function(ev, data){
+    document.addEventListener("componentMounted", function (ev, data) {
       component.eventDispatcher(ev.type, data);
     });
-    document.addEventListener("componentUnmounted", function(ev, data){
-      component.eventDispatcher(ev.type, data);
-    });
-    document.addEventListener("componentUpdate", function(ev, data){
+    document.addEventListener("componentUnmounted", function (ev, data) {
       component.eventDispatcher(ev.type, data);
     });
     //experimental - for dealing with dynamic steps
-    document.addEventListener("componentStepValueChange", function(ev, data){
+    document.addEventListener("componentStepValueChange", function (ev, data) {
       component.eventDispatcher(ev.type, ev.addedSteps);
     });
   }
@@ -101,112 +106,49 @@ class Progress extends HTMLElement {
     this._percentcomplete = Math.ceil(this.getActiveStepFromState());
     this.setAttribute("percentcomplete", Math.ceil(this._percentcomplete));
   }
-  eventDispatcher(eventType, data){
-    switch(eventType){
-      case "componentCreated":
-        //fire logic that needs to run AFTER component is created
-        
+  eventDispatcher(eventType, data) {
+    switch (eventType) {
+      case "componentMounted":
+        //fire logic that needs to run AFTER component is finished mounting
+        this.createComponentArea().then(() => {
+          this._maxValue = Number(this.getAttribute("data-max"));
+          this._numOfSteps = Number(this.getAttribute("data-steps"));
+          this._stepIncrement = this._maxValue / this._numOfSteps;
+          this.setActiveStepInState();
+        });
         break;
-        case "componentBeforeMount":
-          //fire logic that needs to run before component begins mounting
-          
-        break;
-        case "componentMounted":
-          //fire logic that needs to run AFTER component is finished mounting
-          this.createProgressBarComponent();
-          this.createComponentArea().then(()=>{
-            this._maxValue = Number(this.getAttribute("data-max"));
-            this._numOfSteps = Number(this.getAttribute("data-steps"));
-            this._stepIncrement = this._maxValue / this._numOfSteps;
-            this.setActiveStepInState();
-          });
-
-          this.startPageChangeListener();
-        break;
-        case "componentUnmounted":
-          //fire logic that needs to run AFTER component is unmounted
-        break;
-        case "componentUpdate":
-          //fire logic on component updates
-          if (this._percentcomplete < this._maxValue) {
-            this.setActiveStepInState();
-          }
-          sessionStorage.setItem("custom-component__state", JSON.stringify(this.getState()));
-          break;
-          case "componentUnmounted":
-          //fire logic on component updates
-          this.createProgressBarComponent();
-          break;
-          //havent tested this yet
-          //hoping that updating the value in state is enough
-          //need to send the event and the data
-          case "componentStepValueChange":
-            this._numOfSteps = this._numOfSteps + data;
-            this._stepIncrement = this._maxValue / this._numOfSteps;
-            break;
-    }
-  }
-  createShadow(){
-    const component = this;
-    // Create a shadow root
-    const shadow = component.attachShadow({ mode: "open" });
-
-    const progressWrapper = document.createElement("div");
-    progressWrapper.classList.add("progress-wrapper");
-
-    const bar = document.createElement("div");
-    bar.classList.add("progress-bar");
-    bar.max = component.getAttribute("data-max");
-    bar.value = component.getAttribute("data-value");
-    bar.id = "progress-bar-component";
-    const barInner = document.createElement("div");
-    barInner.classList.add("progress-bar-inner");
-
-    barInner.style.width = `0%`;
-
-    bar.appendChild(barInner);
-
-    progressWrapper.appendChild(bar);
-    shadow.appendChild(progressWrapper);
-    shadow.prepend(this.createStyles());
-    shadow.prepend(this.createGlobalStyles());
-    this.shadow = shadow;
-    document.dispatchEvent(new Event("componentBeforeMount"));
-    document.body.appendChild(this);
-  }
-  startPageChangeListener() {
-    let doLogic = false;
-    //this is probably calling too many times
-    //go in debug mode and put a break point on the active step in state getter, its called like 4 times a cycle
-    const mutationObserverCallback = async (mutations, observer) =>{
-      for (const mutation of mutations) {
-        if(mutation.addedNodes.length > 0 && mutation.addedNodes[0].classList.contains("page")){
-          if(mutation.addedNodes[0].querySelector("form")){
-            doLogic = true;
-          break;
-          }
+      case "componentUnmounted":
+        //fire logic on component updates
+        const currentState = this.getState();
+        if (currentState._progressState) {
+          sessionStorage.setItem(
+            "custom-component__state",
+            JSON.stringify(currentState)
+          );
         }
-      }
-      if(doLogic){
-        this.createComponentArea();
-        //dispatch progress event
-        document.dispatchEvent(new Event("componentUpdate"));
-      }
+        break;
+      //havent tested this yet
+      //hoping that updating the value in state is enough
+      //need to send the event and the data
+      case "componentStepValueChange":
+        this._numOfSteps = this._numOfSteps + data;
+        this._stepIncrement = this._maxValue / this._numOfSteps;
+        break;
     }
-    const observer = new MutationObserver(mutationObserverCallback);
-    observer.observe(document.querySelector(".survey"), { childList:true});
   }
-  removeComponent(){
-    if(this && this.parentElement){
+  removeComponent() {
+    if (this && this.parentElement) {
       this.parentElement.removeChild(this);
       document.dispatchEvent(new Event("componentUnmounted"));
     }
   }
-  createGlobalStyles(){
+  createGlobalStyles() {
     const globalStyles = `
         .progress-wrapper {
             transition-property: all;
-            transition-duration: ${this.getConfigs("transitionDuration") / 1000}s;
+            transition-duration: ${
+              this.getConfigs("transitionDuration") / 1000
+            }s;
             transition-timing-function: ease-in;
             opacity: 1;
         }

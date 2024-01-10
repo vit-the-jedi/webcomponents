@@ -19,7 +19,7 @@ const createForm = () => {
 
 const createPageHandler = () => {
   const survey = document.querySelector(".survey");
-  const snapshot = [...survey.querySelector(".page").children];
+  let snapshot = [...survey.querySelector(".container-fluid").children];
 
   survey.innerHTML = "";
 
@@ -30,7 +30,7 @@ const createPageHandler = () => {
     const container = createNode("div", {
         class: "container-fluid",
     })
-    snapshot.forEach((snap) => {
+    snapshot.forEach((snap, i, arr) => {
         if(snap.nodeName === "FORM"){
             snap.style.paddingTop = `${Math.random() * 100}px`;
         }
