@@ -83,10 +83,7 @@ export default class ProgressBar extends Progress {
       text-align: center;
       transition: width 0.15s;
       border-radius: 10px;
-    }
-
-
-        `;
+    }`;
     const styleElement = document.createElement("style");
     styleElement.textContent = styles;
     return styleElement;

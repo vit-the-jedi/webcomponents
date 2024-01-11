@@ -33,9 +33,8 @@ class Progress extends HTMLElement {
     this._maxValue = lastKnownState._maxValue;
     this._stepIncrement = lastKnownState._stepIncrement;
     this._progressState = lastKnownState._progressState;
-    this.shadow.prepend(this.createGlobalStyles());
-    this.shadow.prepend(this.createStyles());
-    this.setActiveStepInState();
+    this._progressState.steps = new Map();
+    this.setActiveStepInState(this._progressState.activeStep);
   }
   setConfigs(configs) {
     this.configs = configs;
@@ -102,6 +101,9 @@ class Progress extends HTMLElement {
       component.eventDispatcher(ev.type, ev.addedSteps);
     });
   }
+  isProgressStepsComponent() {
+    return this._progressState.steps.size ? true : false;
+  }
   updateComponent() {
     this._percentcomplete = Math.ceil(this.getActiveStepFromState());
     this.setAttribute("percentcomplete", Math.ceil(this._percentcomplete));
@@ -113,8 +115,16 @@ class Progress extends HTMLElement {
         this.createComponentArea().then(() => {
           this._maxValue = Number(this.getAttribute("data-max"));
           this._numOfSteps = Number(this.getAttribute("data-steps"));
-          this._stepIncrement = this._maxValue / this._numOfSteps;
-          this.setActiveStepInState();
+          if (this.isProgressStepsComponent()){
+            this._stepIncrement = 1;
+          }else {
+            this._stepIncrement = this._maxValue / this._numOfSteps;
+          }
+          if (this.isProgressStepsComponent()) {
+            this.setActiveStepInState(1);
+          } else {
+            this.setActiveStepInState();
+          }
         });
         break;
       case "componentUnmounted":
@@ -136,6 +146,22 @@ class Progress extends HTMLElement {
         break;
     }
   }
+  // generateMapFromSavedState(obj){
+  //   const stepMap = new Map();
+  //   for(const [key,value] of Object.entries(obj)){
+  //     stepMap.set(key, document.getElementById(value));
+  //   }
+  //   return stepMap;
+  // }
+  // convertMapToObject(map){
+  //   const obj = {};
+  //   if(map && map.size){
+  //     for(const [key,value] of map.entries()){
+  //       obj[key] = value.id;
+  //     }
+  //   }
+  //   return obj;
+  // }
   removeComponent() {
     if (this && this.parentElement) {
       this.parentElement.removeChild(this);
@@ -153,7 +179,7 @@ class Progress extends HTMLElement {
             opacity: 1;
         }
         .updating {
-            opacity: 0;
+            opacity: 1;
         }
         `;
     const globalStyleElement = document.createElement("style");

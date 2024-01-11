@@ -239,7 +239,6 @@ class ProgressBar extends Progress {
     return ["percentcomplete"];
   }
   attributeChangedCallback(name, oldValue, newValue) {
-    console.trace();
     const shadowRoot = this.shadowRoot;
     const shadowRootChildren = [...shadowRoot.children];
     let innerBarParent = shadowRootChildren.filter((child) => {
@@ -306,19 +305,19 @@ class ProgressBar extends Progress {
   }
   createComponentArea() {
     return new Promise(async (resolve, reject) => {
-      const placeholderSpacingDiv = document.createElement("div");
-      placeholderSpacingDiv.setAttribute(
-        "style",
-        `height:${this.getConfigs("height") * 4}px;display:block;`
+      const anchorPoint = await this.getAnchorPoint(
+        this.getConfigs("anchorPoint")
       );
-      const anchorPoint = await this.getAnchorPoint(this.getConfigs("anchorPoint"));
-      anchorPoint.style.marginBottom = `${this.getConfigs("height") * 4}px`;
+      const anchorPointStyle = document.createElement("style");
+      anchorPointStyle.textContent = `
+    ${this.getConfigs("anchorPoint")}{
+      margin-bottom: ${this.getConfigs("height") * 4}px;
+    }
+    `;
+      anchorPoint.parentNode.insertBefore(anchorPointStyle, anchorPoint);
+      document.body.removeChild(placeholder);
       const anchorPointRect = anchorPoint.getBoundingClientRect();
-      anchorPoint.parentNode.insertBefore(
-        placeholderSpacingDiv,
-        anchorPoint.nextElementSibling
-      );
-      const offset = anchorPointRect.top + anchorPointRect.height + placeholderSpacingDiv.getBoundingClientRect().height;
+      const offset = anchorPointRect.top + anchorPointRect.height + this.getConfigs("height") / 2;
       this._offset = offset;
       this.setAttribute(
         "style",
@@ -327,7 +326,7 @@ class ProgressBar extends Progress {
               width:70%;
               left: 15%;`
       );
-      anchorPoint.style.marginBottom = ``;
+      this._offset = offset;
       resolve();
     });
   }
