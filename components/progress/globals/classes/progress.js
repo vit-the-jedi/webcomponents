@@ -32,8 +32,8 @@ class Progress extends HTMLElement {
     this._numOfSteps = lastKnownState._numOfSteps;
     this._maxValue = lastKnownState._maxValue;
     this._stepIncrement = lastKnownState._stepIncrement;
-    this._progressState = lastKnownState._progressState;
-    this._progressState.steps = new Map();
+    this._progressState.activeStep = lastKnownState._progressState.activeStep;
+    //this._progressState.steps = new Map();
     this.setActiveStepInState(this._progressState.activeStep);
   }
   setConfigs(configs) {
@@ -179,7 +179,7 @@ class Progress extends HTMLElement {
             opacity: 1;
         }
         .updating {
-            opacity: 1;
+            opacity: 0;
         }
         `;
     const globalStyleElement = document.createElement("style");

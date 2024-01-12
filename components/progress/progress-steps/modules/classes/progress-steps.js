@@ -55,12 +55,29 @@ export default class ProgressSteps extends Progress {
         padding: 0;
     }
     li {
-        list-style-type:none;
-        flex-basis: calc(100%/${this.getStepsListFromState().size}); 
-        text-align:center
+      list-style-type:none;
+      flex-basis: calc(100%/${this.getStepsListFromState().size}); 
+      text-align:center;
+      font-family: ${this.getConfigs("font")};
+      position:relative;
+      display:flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0.5;
+      min-height: 70px;
+    }
+    li::before{
+      display:block;
+      width: 20px;
+      height: 20px;
+      border-radius: 100%;
+      background: ${this.getConfigs("mainColor") || "black"};
+      content: '';
+      display:flex;
+      align-self:center;
     }
     .active {
-        border: 2px solid ${this.getConfigs("mainColor") || "black"};
+        opacity: 1;
       }
    `;
     const styleElement = document.createElement("style");
@@ -118,7 +135,7 @@ export default class ProgressSteps extends Progress {
       }else {
         for (let i = 1; i <= steps; i++) {
           const stepNode = document.createElement("li");
-          stepNode.textContent = `Step ${i}`;
+          stepNode.textContent = `${this.getConfigs("stepLabels")[i]}`;
           stepNode.id = `step-${i}`;
           stepNode.classList.add(`progress-step-${i}`);
           stepList.appendChild(stepNode);
@@ -140,10 +157,11 @@ export default class ProgressSteps extends Progress {
         savedState._progressState.activeStep;
       savedState._percentcomplete =
         savedState._percentcomplete + savedState._stepIncrement;
-      this.initFromLastKnownState(savedState);
-      this.getStepsAndSetToStateList();
-      this.shadow.prepend(this.createGlobalStyles());
-      this.shadow.prepend(this.createStyles());
+      this.getStepsAndSetToStateList().then(()=>{
+        this.initFromLastKnownState(savedState);
+        this.shadow.prepend(this.createGlobalStyles());
+        this.shadow.prepend(this.createStyles());
+      });
     } else {
       this.registerEvents();
       this.createProgressStepsComponent();
