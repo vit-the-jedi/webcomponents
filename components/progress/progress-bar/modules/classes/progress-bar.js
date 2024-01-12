@@ -2,75 +2,10 @@
 
 import { Progress } from "../../../globals/classes/progress.js";
 
-class ProgressBar extends Progress {
+export default class ProgressBar extends Progress {
   constructor() {
     super();
-    this._maxValue = Number(this.getAttribute("data-max"));
-    this._numOfSteps = Number(this.getAttribute("data-steps"));
-    this._stepIncrement = this._maxValue / this._numOfSteps;
-  }
-  static get observedAttributes() {
-    return ["percentcomplete"];
-  }
-  setConfigs(){
-    this.configs = window.__customProgressBarComponentTheme;
-  }
-  attributeChangedCallback(name, oldValue, newValue) {
-    const innerBar = this.shadow.querySelector(".progress-bar-inner");
-    const activeStepFromState = this.getActiveStepFromState();
-    const formattedActiveStep = Math.floor(activeStepFromState);
-    if (name === "percentcomplete") {
-      this._percentcomplete = activeStepFromState;
-      innerBar.style.width = activeStepFromState + "%";
-    }
-  }
-  get percentcomplete() {
-    return this._percentcomplete;
-  }
-
-  set percentcomplete(val) {
-    if (this._percentcomplete <= this._maxValue) {
-      this.setAttribute("percentcomplete", val);
-    }
-  }
-  dispatchProgressEvent() {
-    this._percentcomplete = Math.ceil(this.getActiveStepFromState());
-    const progress = document.querySelector("progress-bar");
-    const formattedActiveState = Math.floor(this.getActiveStepFromState());
-    progress.setAttribute(
-      "percentcomplete",
-      Math.ceil(this.getActiveStepFromState())
-    );
-  }
-  createStyles() {
-    const progressBarTheme = this.getConfigs("progressBar");
-    const styles = `
-    .progress-wrapper {
-      overflow: hidden;
-    }
-    .progress-bar {
-      width: 100%;
-      height: 12px;
-      background-color: ${progressBarTheme.secondColor || "#F5F8F7"};
-      border-radius: 10px;
-      border: 1px solid #efefef;
-    }
-    .progress-bar-inner {
-      height: 100%;
-      line-height: 30px;
-      background: ${progressBarTheme.mainColor || '#66c296 '};
-      text-align: center;
-      transition: width 0.25s;
-      border-radius: 10px;
-    }
-
-        `;
-    const styleElement = document.createElement("style");
-    styleElement.textContent = styles;
-    return styleElement;
-  }
-  connectedCallback() {
-    this.setConfigs();
+    this.classList.add("component-positioned");
     // Create a shadow root
     const shadow = this.attachShadow({ mode: "open" });
 
@@ -91,24 +26,129 @@ class ProgressBar extends Progress {
 
     progressWrapper.appendChild(bar);
     shadow.appendChild(progressWrapper);
-    shadow.prepend(this.createStyles());
-    shadow.prepend(this.createGlobalStyles());
     this.shadow = shadow;
-    this.setActiveStepInState(this._stepIncrement);
-
-    const webComponentClass = this;
-    document.addEventListener("progressBarUpdate", function () {
-      if (
-        webComponentClass.getActiveStepFromState() < webComponentClass._maxValue
-      ) {
-        webComponentClass.setActiveStepInState(
-          webComponentClass._stepIncrement
-        );
+  }
+  static get observedAttributes() {
+    return ["percentcomplete"];
+  }
+  attributeChangedCallback(name, oldValue, newValue) {
+    const shadowRoot = this.shadowRoot;
+    const shadowRootChildren = [...shadowRoot.children];
+    let innerBarParent = shadowRootChildren.filter((child) => {
+      if (child.classList.contains("progress-wrapper")) {
+        return child.querySelector(".progress-bar-inner");
       }
     });
-    this.startPageChangeListener();
+    innerBarParent = innerBarParent[0];
+    const innerBar = innerBarParent.querySelector(".progress-bar-inner");
+    const activeStepFromState = this._percentcomplete;
+    const formattedActiveStep = Math.floor(activeStepFromState);
+    if (name === "percentcomplete") {
+      this._percentcomplete = activeStepFromState;
+      //animation for width of progress bar
+      setTimeout(()=>{
+        innerBar.style.width = activeStepFromState + "%";
+      }, 250)
+
+    }
+  }
+  get percentcomplete() {
+    return this._percentcomplete;
+  }
+
+  set percentcomplete(val) {
+    if (this._percentcomplete <= this._maxValue) {
+      this.setAttribute("percentcomplete", val);
+    }
+  }
+  createStyles() {
+    const styles = `
+    .progress-wrapper {
+      overflow: hidden;
+      margin: 2em auto;
+    }
+    .progress-bar {
+      width: 99%;
+      height: ${this.getConfigs("height")}px;
+      background-color: ${this.getConfigs("secondColor") || "#F5F8F7"};
+      border-radius: 10px;
+      border: 1px solid #efefef;
+      margin: auto;
+      display:block;
+    }
+    .progress-bar-inner {
+      height: 100%;
+      line-height: 30px;
+      background: ${this.getConfigs("mainColor") || "#66c296 "};
+      text-align: center;
+      transition: width 0.15s;
+      border-radius: 10px;
+    }`;
+    const styleElement = document.createElement("style");
+    styleElement.textContent = styles;
+    return styleElement;
+  }
+  getAnchorPoint(configAnchorPoint) {
+    //most reliable way to wait for React DOM render from outside of react -___-
+    return new Promise((resolve, reject) => {
+      function checkElement() {
+        const element = document.querySelector(configAnchorPoint);
+        if (element) {
+          clearInterval(intervalId);
+          resolve(element);
+        }
+      }
+      const intervalId = setInterval(checkElement, 50);
+    });
+  }
+  createComponentArea() {
+    return new Promise(async (resolve, reject) => {
+      this._anchorPoint = await this.getAnchorPoint(
+        this.getConfigs("anchorPoint")
+      );
+      resolve();
+    });
+  }
+  init(configs, callback) {
+    callback(configs);
+    this.getAnchorPoint(this.getConfigs("anchorPoint")).then((anchorPoint)=>{
+      anchorPoint.parentElement.insertBefore(this, anchorPoint.nextElementSibling);
+    })
+  }
+  createProgressBarComponent() {
+    const progDiv = document.createElement("div");
+    progDiv.classList.add("progress-container");
+    this.setAttribute("data-max", "100");
+    this.setAttribute("data-steps", this.getConfigs("steps"));
+    this.shadow.prepend(this.createGlobalStyles());
+    this.shadow.prepend(this.createStyles());
+    document.dispatchEvent(new Event("componentMounted"));
+  }
+  connectedCallback() {
+    this.log("component connected");
+    const savedState = JSON.parse(
+      sessionStorage.getItem("custom-component__state")
+    );
+    if(savedState){
+      savedState.updated = false;
+      savedState._progressState.activeStep = savedState._progressState.activeStep + 1;
+      savedState._percentcomplete = savedState._percentcomplete + savedState._stepIncrement;
+      this.initFromLastKnownState(savedState);
+    }else {
+      this.registerEvents();
+      this.createProgressBarComponent();
+    }
+    
+    //document.dispatchEvent(new Event("componentMounted"));
+    //may need to begin all logic in here - as the issue stems from the leadID version of the progress-bar
+    //being added to the page without first calling the createProgressComponent
+  }
+  disconnectedCallback() {
+    this.log("component disconnected");
+    document.dispatchEvent(new Event("componentUnmounted"));
   }
 }
+
 customElements.define("progress-bar", ProgressBar);
 
 export { ProgressBar };

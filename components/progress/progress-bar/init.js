@@ -1,15 +1,12 @@
-"use strict";
+import ProgressBar from "./modules/classes/progress-bar";
+import { Progress } from "../globals/classes/progress.js";
 
-import { ProgressBar } from "../progress-bar/modules/classes/progress-bar.js";
+  const initProgressComponent = (userConfigs) => {
+    const progressBar = new ProgressBar();
+    progressBar.init(userConfigs, progressBar.initState.bind(progressBar));
+  };
+  window.__customProgressBarMethods = {};
+  window.initProgressComponent =
+    initProgressComponent;
 
-const initProgressComponent = (formControllers) => {
 
-    for (const control of formControllers){
-        control.addEventListener("click", function(){
-            document.dispatchEvent(new Event("progressBarUpdate"));
-        });
-    }
-
-}
-
-window.initProgressComponent = initProgressComponent;
