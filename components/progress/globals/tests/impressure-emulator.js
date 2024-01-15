@@ -2,7 +2,7 @@
 
 let clickCount = 0;
 const ev = new Event("componentStepValueChange");
-ev.removedSteps = 6;
+ev.removedSteps = 2;
 
 const createNode = (type, attributes) => {
   const el = document.createElement(type);
