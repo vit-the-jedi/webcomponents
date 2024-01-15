@@ -27,6 +27,7 @@ export default class ProgressBar extends Progress {
     progressWrapper.appendChild(bar);
     shadow.appendChild(progressWrapper);
     this.shadow = shadow;
+    document.dispatchEvent(new Event("componentCreated"));
   }
   static get observedAttributes() {
     return ["percentcomplete"];
@@ -46,10 +47,9 @@ export default class ProgressBar extends Progress {
     if (name === "percentcomplete") {
       this._percentcomplete = activeStepFromState;
       //animation for width of progress bar
-      setTimeout(()=>{
+      setTimeout(() => {
         innerBar.style.width = activeStepFromState + "%";
-      }, 250)
-
+      }, 250);
     }
   }
   get percentcomplete() {
@@ -111,9 +111,12 @@ export default class ProgressBar extends Progress {
   }
   init(configs, callback) {
     callback(configs);
-    this.getAnchorPoint(this.getConfigs("anchorPoint")).then((anchorPoint)=>{
-      anchorPoint.parentElement.insertBefore(this, anchorPoint.nextElementSibling);
-    })
+    this.getAnchorPoint(this.getConfigs("anchorPoint")).then((anchorPoint) => {
+      anchorPoint.parentElement.insertBefore(
+        this,
+        anchorPoint.nextElementSibling
+      );
+    });
   }
   createProgressBarComponent() {
     const progDiv = document.createElement("div");
@@ -125,23 +128,22 @@ export default class ProgressBar extends Progress {
     document.dispatchEvent(new Event("componentMounted"));
   }
   connectedCallback() {
+    document.dispatchEvent(new Event("componentBeforeMount"));
     this.log("component connected");
     const savedState = JSON.parse(
       sessionStorage.getItem("custom-component__state")
     );
-    if(savedState){
+    if (savedState) {
       savedState.updated = false;
-      savedState._progressState.activeStep = savedState._progressState.activeStep + 1;
-      savedState._percentcomplete = savedState._percentcomplete + savedState._stepIncrement;
+      savedState._progressState.activeStep =
+        savedState._progressState.activeStep + 1;
+      savedState._percentcomplete =
+        savedState._percentcomplete + savedState._stepIncrement;
       this.initFromLastKnownState(savedState);
-    }else {
+    } else {
       this.registerEvents();
       this.createProgressBarComponent();
     }
-    
-    //document.dispatchEvent(new Event("componentMounted"));
-    //may need to begin all logic in here - as the issue stems from the leadID version of the progress-bar
-    //being added to the page without first calling the createProgressComponent
   }
   disconnectedCallback() {
     this.log("component disconnected");
