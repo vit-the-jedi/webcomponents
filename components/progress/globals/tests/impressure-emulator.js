@@ -4,6 +4,8 @@ let clickCount = 0;
 const ev = new Event("componentStepValueChange");
 ev.removedSteps = 2;
 
+const ev2 = new Event("componentManualProgressStepUpdate");
+
 const createNode = (type, attributes) => {
   const el = document.createElement(type);
   for (const [key, val] of Object.entries(attributes)) {
@@ -49,8 +51,8 @@ const progressBtn = document.getElementById("bar");
 progressBtn.addEventListener("click", function () {
   clickCount++;
   createPageHandler();
-  if (clickCount === 2) {
-    document.dispatchEvent(ev);
+  if (clickCount === 2 || clickCount === 6) {
+    document.dispatchEvent(ev2);
   }
   // const rand = (Math.random() * 10);
   // console.log(rand);

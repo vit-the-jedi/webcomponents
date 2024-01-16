@@ -40,7 +40,7 @@
       <script
         type="module"
         id="progress-bar-entry"
-        src="components/progress/progress-bar/init.js"
+        src="components/progress/progress-steps/init.js"
       ></script>
       <script src="components/progress/globals/tests/impressure-emulator.js"></script>
       <iframe id="hello"></iframe>
@@ -68,13 +68,15 @@
             transitionDuration: 250,
             anchorPoint: ".formheader",
             height: 12,
-            steps: 10,
-            // stepLabels: {
-            //   1: 'Start',
-            //   2: 'Vehicle Details',
-            //   3: 'Policy and Driver Details',
-            //   4: 'Compare Quotes'
-            // },
+            steps: 5,
+            stepLabels: {
+              1: 'Start',
+              2: 'Vehicle Details',
+              3: 'Driver Details',
+              4: 'Compare Quotes'
+            },
+            optionalEvents: ["componentManualProgressStepUpdate"],
+            manualUpdate: true,
             _devMode:true
           });
         }, 500);

@@ -18,7 +18,7 @@ class Progress extends HTMLElement {
   initState(configs) {
     this.log("component initialized");
     this.configs = configs;
-    if(configs._devMode){
+    if (configs._devMode) {
       this._devMode = true;
       delete configs._devMode;
     }
@@ -30,8 +30,8 @@ class Progress extends HTMLElement {
   }
   initFromLastKnownState(lastKnownState) {
     this.log("component initialized from last known state");
-    this.registerEvents();
     this.setConfigs(lastKnownState.configs);
+    this.registerEvents(this?.getConfigs("optionalEvents"));
     this._percentcomplete = lastKnownState._percentcomplete;
     this._numOfSteps = lastKnownState._numOfSteps;
     this._maxValue = lastKnownState._maxValue;
@@ -43,7 +43,15 @@ class Progress extends HTMLElement {
       this.shadow.prepend(this.createGlobalStyles());
       this.shadow.prepend(this.createStyles());
     }
-    this.setActiveStepInState(this._progressState.activeStep);
+    if (
+      this.isProgressStepsComponent() &&
+      this.getConfigs("manualUpdate") &&
+      this._listeners.unmounted
+    ) {
+      return;
+    } else {
+      this.setActiveStepInState();
+    }
   }
   setConfigs(configs) {
     this.configs = configs;
@@ -77,7 +85,9 @@ class Progress extends HTMLElement {
       this.removeComponent();
     } else {
       this._progressState.stepsRemaining =
-        this._progressState.stepsRemaining - 1 <= 0 ? 0 : this._progressState.stepsRemaining - 1;
+        this._progressState.stepsRemaining - 1 <= 0
+          ? 0
+          : this._progressState.stepsRemaining - 1;
       this.updateComponent();
     }
   }
@@ -122,7 +132,7 @@ class Progress extends HTMLElement {
    * "componentStepValueChange" - hook for use outside of the component to deal with dynamic survey paths. If a user input adds / removes pages from the path, this event must be called and the hook must be used to update the component to reflect the new amount of pages.
    *
    */
-  registerEvents() {
+  registerEvents(optionalEvents = null) {
     const component = this;
     if (Object.keys(this._listeners).length === 0) {
       document.addEventListener("componentCreated", function (ev, data) {
@@ -149,6 +159,14 @@ class Progress extends HTMLElement {
           component.eventDispatcher(ev.type, ev);
         }
       );
+      if (optionalEvents) {
+        for (const eventName of optionalEvents) {
+          document.addEventListener(eventName, function (ev, data) {
+            component._listeners[eventName] = true;
+            component.eventDispatcher(ev.type, ev);
+          });
+        }
+      }
     }
   }
   isProgressStepsComponent() {
@@ -200,15 +218,14 @@ class Progress extends HTMLElement {
         }
         const newStepAmount = this._progressState.stepsRemaining + stepChange;
         //if the new step amount is less than or equal to zero,
-        //we must assume the flow has been completed. 
+        //we must assume the flow has been completed.
         //force progress bar to complete
         if (newStepAmount <= 0) {
           this._progressState.stepsRemaining = 0;
           this._stepIncrement = this._maxValue / this._numOfSteps;
-          this._progressState.activeStep =
-            this._maxValue;
+          this._progressState.activeStep = this._maxValue;
           this._percentcomplete = this._maxValue;
-        } 
+        }
         //else reset our state values to reflect the new number of steps
         else {
           this._numOfSteps = newStepAmount;
@@ -221,7 +238,11 @@ class Progress extends HTMLElement {
         }
         //commit the new step to state + update the component
         this.setActiveStepInState();
-        this.log(this.getState());
+        this.saveState();
+        break;
+      case "componentManualProgressStepUpdate":
+        this.log("manual component update fired.");
+        this.setActiveStepInState();
         this.saveState();
         break;
     }
