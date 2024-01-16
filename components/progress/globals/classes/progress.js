@@ -8,7 +8,6 @@
 class Progress extends HTMLElement {
   constructor() {
     super();
-    this._devMode = true;
     this._listeners = {};
   }
   log(msg) {
@@ -19,9 +18,13 @@ class Progress extends HTMLElement {
   initState(configs) {
     this.log("component initialized");
     this.configs = configs;
+    if(configs._devMode){
+      this._devMode = true;
+      delete configs._devMode;
+    }
     this._progressState = {};
     this._progressState.activeStep = 0;
-    this._progressState.stepsRemaining = 0;
+    this._progressState.stepsRemaining = this._numOfSteps;
     this._progressState.steps = new Map();
     this.progressElement = null;
   }
@@ -74,7 +77,7 @@ class Progress extends HTMLElement {
       this.removeComponent();
     } else {
       this._progressState.stepsRemaining =
-        this._progressState.stepsRemaining - 1;
+        this._progressState.stepsRemaining - 1 <= 0 ? 0 : this._progressState.stepsRemaining - 1;
       this.updateComponent();
     }
   }
