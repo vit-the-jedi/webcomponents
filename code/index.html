@@ -30,7 +30,7 @@
         </div>
           <form id="generic-form" style="height: 300px; background: red"></form>
         </div>
-      </divc>
+      </div>
     </div>
     <div>
       <!-- <progress-step data-steps="5"></progress-step>
@@ -61,11 +61,18 @@
           initProgressComponent({
             font: "sans-serif",
               //made it this way for now to make it easier - can't think of a better way at the moment
-            height: 12,
-            transitionDuration: 500,
+            transitionDuration: 250,
             anchorPoint: ".formheader",
-            steps: 11,
-            removeOnComplete: true,
+            height: 12,
+            steps: 5,
+            stepLabels: {
+              1: 'Start',
+              2: 'Vehicle Details',
+              3: 'Driver Details',
+              4: 'Compare Quotes'
+            },
+            optionalEvents: ["componentManualProgressStepUpdate"],
+            manualUpdate: true,
             _devMode:true
           });
         }, 500);
