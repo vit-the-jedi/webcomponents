@@ -167,6 +167,9 @@ class Progress extends HTMLElement {
       });
       document.addEventListener("componentMounted", function(ev, data) {
         component._listeners.mounted = true;
+        window.top._customComponentProps = {};
+        window.top._customComponentProps.element = component;
+        window.top._customComponentProps.anchor = component.getConfigs("anchorPoint");
         component.eventDispatcher(ev.type, data);
       });
       document.addEventListener("componentUnmounted", function(ev, data) {
@@ -233,7 +236,7 @@ class Progress extends HTMLElement {
         } else {
           stepChange = data.removedSteps * -1;
         }
-        const newStepAmount = this._progressState.stepsRemaining + stepChange;
+        const newStepAmount = this._progressState.stepsRemaining + 1 + stepChange;
         if (newStepAmount <= 0) {
           this._progressState.stepsRemaining = 0;
           this._stepIncrement = this._maxValue / this._numOfSteps;
