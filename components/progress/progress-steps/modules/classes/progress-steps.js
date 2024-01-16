@@ -47,6 +47,17 @@ export default class ProgressSteps extends Progress {
   }
   createStyles() {
     const styles = `
+    .progress-wrapper {
+      container-type: inline-size;
+    }
+    @container (max-width: 767px) {
+      .progress-wrapper ul{
+        flex-wrap: wrap; 
+      }
+      .progress-wrapper li{
+        flex-basis: calc(100%/${this.getStepsListFromState().size > 4 ? (this.getStepsListFromState().size) / 2 : this.getStepsListFromState().size}); 
+      }
+    }
     ul {
         display:flex; 
         flex-wrap: nowrap; 
@@ -56,20 +67,22 @@ export default class ProgressSteps extends Progress {
     }
     li {
       list-style-type:none;
-      flex-basis: calc(100%/${this.getStepsListFromState().size}); 
       text-align:center;
       font-family: ${this.getConfigs("font")};
+      flex-basis: calc(100%/${this.getStepsListFromState().size}); 
       position:relative;
       display:flex;
       flex-direction: column;
       justify-content: space-between;
       opacity: 0.5;
-      min-height: 70px;
+      min-height: 50px;
+      padding-bottom: 1em;
+      font-size: 85%;
     }
     li::before{
       display:block;
-      width: 20px;
-      height: 20px;
+      width: 12px;
+      height: 12px;
       border-radius: 100%;
       background: ${this.getConfigs("mainColor") || "black"};
       content: '';
@@ -163,7 +176,7 @@ export default class ProgressSteps extends Progress {
         this.shadow.prepend(this.createStyles());
       });
     } else {
-      this.registerEvents();
+      this.registerEvents(this.getConfigs("optionalEvents"));
       this.createProgressStepsComponent();
     }
 

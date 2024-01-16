@@ -1,5 +1,11 @@
 "use strict";
 
+let clickCount = 0;
+const ev = new Event("componentStepValueChange");
+ev.removedSteps = 2;
+
+const ev2 = new Event("componentManualProgressStepUpdate");
+
 const createNode = (type, attributes) => {
   const el = document.createElement(type);
   for (const [key, val] of Object.entries(attributes)) {
@@ -25,17 +31,17 @@ const createPageHandler = () => {
 
   setTimeout(() => {
     const page = createNode("div", {
-      class: "page"
-    })
+      class: "page",
+    });
     const container = createNode("div", {
-        class: "container-fluid",
-    })
+      class: "container-fluid",
+    });
     snapshot.forEach((snap, i, arr) => {
-        if(snap.nodeName === "FORM"){
-            snap.style.paddingTop = `${Math.random() * 100}px`;
-        }
+      if (snap.nodeName === "FORM") {
+        snap.style.paddingTop = `${Math.random() * 100}px`;
+      }
       container.appendChild(snap);
-      page.appendChild(container)
+      page.appendChild(container);
     });
     survey.appendChild(page);
   }, 500);
@@ -43,7 +49,11 @@ const createPageHandler = () => {
 
 const progressBtn = document.getElementById("bar");
 progressBtn.addEventListener("click", function () {
+  clickCount++;
   createPageHandler();
+  if (clickCount === 2 || clickCount === 6) {
+    document.dispatchEvent(ev2);
+  }
   // const rand = (Math.random() * 10);
   // console.log(rand);
   // const prog = document.querySelector("progress-bar");
@@ -56,5 +66,3 @@ progressBtn.addEventListener("click", function () {
   // }
   //document.dispatchEvent(new Event("componentUpdate"))
 });
-
-

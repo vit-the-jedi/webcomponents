@@ -67,13 +67,16 @@
               //made it this way for now to make it easier - can't think of a better way at the moment
             transitionDuration: 250,
             anchorPoint: ".formheader",
-            steps: 4,
+            height: 12,
+            steps: 5,
             stepLabels: {
               1: 'Start',
               2: 'Vehicle Details',
-              3: 'Policy and Driver Details',
+              3: 'Driver Details',
               4: 'Compare Quotes'
             },
+            optionalEvents: ["componentManualProgressStepUpdate"],
+            manualUpdate: true,
             _devMode:true
           });
         }, 500);

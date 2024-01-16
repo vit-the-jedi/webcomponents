@@ -8,7 +8,7 @@
 class Progress extends HTMLElement {
   constructor() {
     super();
-    this._devMode = true;
+    this._listeners = {};
   }
   log(msg) {
     if (this._devMode) {
@@ -18,23 +18,40 @@ class Progress extends HTMLElement {
   initState(configs) {
     this.log("component initialized");
     this.configs = configs;
+    if (configs._devMode) {
+      this._devMode = true;
+      delete configs._devMode;
+    }
     this._progressState = {};
     this._progressState.activeStep = 0;
+    this._progressState.stepsRemaining = this._numOfSteps;
     this._progressState.steps = new Map();
     this.progressElement = null;
   }
   initFromLastKnownState(lastKnownState) {
     this.log("component initialized from last known state");
-    this.log(lastKnownState);
-    this.registerEvents();
     this.setConfigs(lastKnownState.configs);
+    this.registerEvents(this?.getConfigs("optionalEvents"));
     this._percentcomplete = lastKnownState._percentcomplete;
     this._numOfSteps = lastKnownState._numOfSteps;
     this._maxValue = lastKnownState._maxValue;
     this._stepIncrement = lastKnownState._stepIncrement;
     this._progressState.activeStep = lastKnownState._progressState.activeStep;
-    //this._progressState.steps = new Map();
-    this.setActiveStepInState(this._progressState.activeStep);
+    this._progressState.stepsRemaining =
+      lastKnownState._progressState.stepsRemaining;
+    if (!this.shadowRoot.querySelector("style")) {
+      this.shadow.prepend(this.createGlobalStyles());
+      this.shadow.prepend(this.createStyles());
+    }
+    if (
+      this.isProgressStepsComponent() &&
+      this.getConfigs("manualUpdate") &&
+      this._listeners.unmounted
+    ) {
+      return;
+    } else {
+      this.setActiveStepInState();
+    }
   }
   setConfigs(configs) {
     this.configs = configs;
@@ -61,13 +78,16 @@ class Progress extends HTMLElement {
       this._progressState.activeStep =
         this._progressState.activeStep + this._stepIncrement;
     }
-    this.log(this._progressState.activeStep);
     if (
       this._progressState.activeStep === this._maxValue &&
       this.configs.removeOnComplete
     ) {
       this.removeComponent();
     } else {
+      this._progressState.stepsRemaining =
+        this._progressState.stepsRemaining - 1 <= 0
+          ? 0
+          : this._progressState.stepsRemaining - 1;
       this.updateComponent();
     }
   }
@@ -78,28 +98,76 @@ class Progress extends HTMLElement {
       _percentcomplete: this._percentcomplete,
       _progressState: this._progressState,
       _stepIncrement: this._stepIncrement,
+      _listeners: this._listeners,
       configs: this.configs,
     };
     return state;
   }
-  registerEvents() {
+  saveState() {
+    const currentState = this.getState();
+    if (currentState._progressState) {
+      sessionStorage.setItem(
+        "custom-component__state",
+        JSON.stringify(currentState)
+      );
+    }
+  }
+  /**
+   * @function
+   * @description exposes lifecycle hooks for the component. This method then calls eventDispatcher to
+   * facilitate logic for each custom event.
+   *
+   * Each event listener can receive and pass custom data appended to the event.
+   *
+   * @customEvents
+   *
+   * "componentCreated" - hook for after the constructor has finished building the shadow DOM.
+   *
+   * "componentBeforeMount" - hook for after component has been added to the DOM, but before the progress bar has been mounted to the component. Invoked inside component's built-in connectedCallback method.
+   *
+   * "componentMounted" - hook for after progress bar has been mounted to the component.
+   *
+   * "componentUnmounted" - hook for after component has been removed from the DOM. Invoked inside components' built-in disconnectedCallback method.
+   *
+   * "componentStepValueChange" - hook for use outside of the component to deal with dynamic survey paths. If a user input adds / removes pages from the path, this event must be called and the hook must be used to update the component to reflect the new amount of pages.
+   *
+   */
+  registerEvents(optionalEvents = null) {
     const component = this;
-    document.addEventListener("componentCreated", function (ev, data) {
-      component.eventDispatcher(ev.type, data);
-    });
-    document.addEventListener("componentBeforeMount", function (ev, data) {
-      component.eventDispatcher(ev.type, data);
-    });
-    document.addEventListener("componentMounted", function (ev, data) {
-      component.eventDispatcher(ev.type, data);
-    });
-    document.addEventListener("componentUnmounted", function (ev, data) {
-      component.eventDispatcher(ev.type, data);
-    });
-    //experimental - for dealing with dynamic steps
-    document.addEventListener("componentStepValueChange", function (ev, data) {
-      component.eventDispatcher(ev.type, ev.addedSteps);
-    });
+    if (Object.keys(this._listeners).length === 0) {
+      document.addEventListener("componentCreated", function (ev, data) {
+        component._listeners.created = true;
+        component.eventDispatcher(ev.type, data);
+      });
+      document.addEventListener("componentBeforeMount", function (ev, data) {
+        component._listeners.beforeMount = true;
+        component.eventDispatcher(ev.type, data);
+      });
+      document.addEventListener("componentMounted", function (ev, data) {
+        component._listeners.mounted = true;
+        component.eventDispatcher(ev.type, data);
+      });
+      document.addEventListener("componentUnmounted", function (ev, data) {
+        component._listeners.unmounted = true;
+        component.eventDispatcher(ev.type, data);
+      });
+      //for dealing with dynamic steps
+      document.addEventListener(
+        "componentStepValueChange",
+        function (ev, data) {
+          component._listeners.stepValueChange = true;
+          component.eventDispatcher(ev.type, ev);
+        }
+      );
+      if (optionalEvents) {
+        for (const eventName of optionalEvents) {
+          document.addEventListener(eventName, function (ev, data) {
+            component._listeners[eventName] = true;
+            component.eventDispatcher(ev.type, ev);
+          });
+        }
+      }
+    }
   }
   isProgressStepsComponent() {
     return this._progressState.steps.size ? true : false;
@@ -107,17 +175,25 @@ class Progress extends HTMLElement {
   updateComponent() {
     this._percentcomplete = Math.ceil(this.getActiveStepFromState());
     this.setAttribute("percentcomplete", Math.ceil(this._percentcomplete));
+    this.log(this.getState());
   }
+  /**
+   *
+   * @param {String} eventType the type of custom event we received from the event listeners in registerEvents
+   * @param {Object} data custom data we can append to the event object
+   */
   eventDispatcher(eventType, data) {
     switch (eventType) {
       case "componentMounted":
-        //fire logic that needs to run AFTER component is finished mounting
+        //anchor the component to the anchorPoint provided
         this.createComponentArea().then(() => {
+          //set initial values to state
           this._maxValue = Number(this.getAttribute("data-max"));
           this._numOfSteps = Number(this.getAttribute("data-steps"));
-          if (this.isProgressStepsComponent()){
+          this._progressState.stepsRemaining = this._numOfSteps;
+          if (this.isProgressStepsComponent()) {
             this._stepIncrement = 1;
-          }else {
+          } else {
             this._stepIncrement = this._maxValue / this._numOfSteps;
           }
           if (this.isProgressStepsComponent()) {
@@ -128,40 +204,49 @@ class Progress extends HTMLElement {
         });
         break;
       case "componentUnmounted":
-        //fire logic on component updates
-        const currentState = this.getState();
-        if (currentState._progressState) {
-          sessionStorage.setItem(
-            "custom-component__state",
-            JSON.stringify(currentState)
-          );
-        }
+        //save our state to sessionStorage so we can initilize to the current state once mounted again
+        this.saveState();
         break;
-      //havent tested this yet
-      //hoping that updating the value in state is enough
-      //need to send the event and the data
       case "componentStepValueChange":
-        this._numOfSteps = this._numOfSteps + data;
-        this._stepIncrement = this._maxValue / this._numOfSteps;
+        this.log("step value update received");
+        let stepChange;
+        //check if we want to add or subtract steps
+        if (data.addedSteps) {
+          stepChange = data.addedSteps;
+        } else {
+          stepChange = data.removedSteps * -1;
+        }
+        const newStepAmount = this._progressState.stepsRemaining + stepChange;
+        //if the new step amount is less than or equal to zero,
+        //we must assume the flow has been completed.
+        //force progress bar to complete
+        if (newStepAmount <= 0) {
+          this._progressState.stepsRemaining = 0;
+          this._stepIncrement = this._maxValue / this._numOfSteps;
+          this._progressState.activeStep = this._maxValue;
+          this._percentcomplete = this._maxValue;
+        }
+        //else reset our state values to reflect the new number of steps
+        else {
+          this._numOfSteps = newStepAmount;
+          this._progressState.stepsRemaining = this._numOfSteps;
+          this._stepIncrement = this._maxValue / this._numOfSteps;
+          this._progressState.activeStep =
+            this._maxValue -
+            this._progressState.stepsRemaining * this._stepIncrement;
+          this._percentcomplete = this._progressState.activeStep;
+        }
+        //commit the new step to state + update the component
+        this.setActiveStepInState();
+        this.saveState();
+        break;
+      case "componentManualProgressStepUpdate":
+        this.log("manual component update fired.");
+        this.setActiveStepInState();
+        this.saveState();
         break;
     }
   }
-  // generateMapFromSavedState(obj){
-  //   const stepMap = new Map();
-  //   for(const [key,value] of Object.entries(obj)){
-  //     stepMap.set(key, document.getElementById(value));
-  //   }
-  //   return stepMap;
-  // }
-  // convertMapToObject(map){
-  //   const obj = {};
-  //   if(map && map.size){
-  //     for(const [key,value] of map.entries()){
-  //       obj[key] = value.id;
-  //     }
-  //   }
-  //   return obj;
-  // }
   removeComponent() {
     if (this && this.parentElement) {
       this.parentElement.removeChild(this);
