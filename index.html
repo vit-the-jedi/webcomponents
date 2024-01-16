@@ -40,7 +40,7 @@
       <script
         type="module"
         id="progress-bar-entry"
-        src="components/progress/progress-steps/init.js"
+        src="init.js"
       ></script>
       <script src="components/progress/globals/tests/impressure-emulator.js"></script>
       <iframe id="hello"></iframe>
@@ -63,6 +63,7 @@
       <script>
         setTimeout(() => {
           initProgressComponent({
+            type: "bar",
             font: "sans-serif",
               //made it this way for now to make it easier - can't think of a better way at the moment
             transitionDuration: 250,
