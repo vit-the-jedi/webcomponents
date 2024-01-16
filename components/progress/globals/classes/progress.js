@@ -273,4 +273,4 @@ class Progress extends HTMLElement {
   }
 }
 
-export { Progress };
+export {Progress}
