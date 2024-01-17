@@ -39,10 +39,6 @@ class Progress extends HTMLElement {
     this._progressState.activeStep = lastKnownState._progressState.activeStep;
     this._progressState.stepsRemaining =
       lastKnownState._progressState.stepsRemaining;
-    if (!this.shadowRoot.querySelector("style")) {
-      this.shadow.prepend(this.createGlobalStyles());
-      this.shadow.prepend(this.createStyles());
-    }
     if (
       this.isProgressStepsComponent() &&
       this.getConfigs("manualUpdate") &&

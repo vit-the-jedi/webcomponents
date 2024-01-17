@@ -27,8 +27,10 @@ export default class ProgressSteps extends Progress {
     setTimeout(()=>{
       stepProgressWrapper.classList.remove("updating");
       shadowRoot.querySelector(".active")?.classList.remove("active");
+      shadowRoot.querySelector(".active")?.classList.remove("inactive");
       const stepToActivate = this.getStepFromList(this.getActiveStepFromState());
       if(stepToActivate){
+        stepToActivate.classList.remove("inactive");
         stepToActivate.classList.add("active");
       }else {
         this.getStepFromList(1).classList.add("active");
@@ -46,52 +48,75 @@ export default class ProgressSteps extends Progress {
     }
   }
   createStyles() {
+    const mainColor = this.getConfigs("mainColor");
     const styles = `
     .progress-wrapper {
-      container-type: inline-size;
-    }
-    @container (max-width: 767px) {
-      .progress-wrapper ul{
-        flex-wrap: wrap; 
-      }
-      .progress-wrapper li{
-        flex-basis: calc(100%/${this.getStepsListFromState().size > 4 ? (this.getStepsListFromState().size) / 2 : this.getStepsListFromState().size}); 
-      }
+      margin-bottom: 1em;
     }
     ul {
-        display:flex; 
-        flex-wrap: nowrap; 
-        align-content: space-between;
+        display: table;
+        table-layout: fixed;
+        width: 100%;
         margin: 0;
         padding: 0;
+        counter-reset: steps 0;
     }
     li {
+      text-align: center;
+      display: table-cell;
+      position: relative;
       list-style-type:none;
-      text-align:center;
       font-family: ${this.getConfigs("font")};
-      flex-basis: calc(100%/${this.getStepsListFromState().size}); 
-      position:relative;
-      display:flex;
-      flex-direction: column;
-      justify-content: space-between;
-      opacity: 0.5;
-      min-height: 50px;
-      padding-bottom: 1em;
       font-size: 85%;
     }
     li::before{
-      display:block;
-      width: 12px;
-      height: 12px;
-      border-radius: 100%;
-      background: ${this.getConfigs("mainColor") || "black"};
+      color: ${mainColor || "black"};
+      display: block;
+      margin: 0 auto 4px;
+      width: 36px;
+      height: 36px;
+      line-height: 35px;
+      text-align: center;
+      font-weight: bold;
+      background-color: white;
+      border-width: 2px;
+      border-style: solid;
+      border-color: ${mainColor || "black"};
+      border-radius: 50px;
+      font-size: 100%;
+      content: counter(steps);
+      counter-increment: steps;
+    }
+    li::after {
       content: '';
-      display:flex;
-      align-self:center;
+      height: 2px;
+      width: 100%;
+      background-color: ${mainColor || "black"};
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      z-index: -1;
+    }
+    li:last-child:after {
+      display:none;
     }
     .active {
-        opacity: 1;
-      }
+      opacity: 1;
+    }
+    .active ~ li:before{
+      background-color: #ededed;
+      border-color: #ededed;
+      color: #808080;
+    }
+    ul > .active:after {
+      background-color: #ededed;
+    }
+    ul > li.active ~ li:after{
+      background-color: #ededed;
+    }
+    ul > li.active ~ li {
+      color: #808080;
+    }
    `;
     const styleElement = document.createElement("style");
     styleElement.textContent = styles;
@@ -129,8 +154,10 @@ export default class ProgressSteps extends Progress {
   }
   createProgressStepsComponent() {
     this.createProgressStepsComponentInner();
-    this.shadow.prepend(this.createGlobalStyles());
-    this.shadow.prepend(this.createStyles());
+    if(!this._listeners.mounted){
+      this.shadow.prepend(this.createGlobalStyles());
+      this.shadow.prepend(this.createStyles());
+    }
     document.dispatchEvent(new Event("componentMounted"));
   }
   createProgressStepsComponentInner(){
@@ -151,6 +178,10 @@ export default class ProgressSteps extends Progress {
           stepNode.textContent = `${this.getConfigs("stepLabels")[i]}`;
           stepNode.id = `step-${i}`;
           stepNode.classList.add(`progress-step-${i}`);
+          stepNode.classList.add(`inactive`);
+          if(i === steps){
+            stepNode.classList.add("last-step");
+          }
           stepList.appendChild(stepNode);
           this.setStepToList(i, stepNode);
         }
@@ -172,8 +203,12 @@ export default class ProgressSteps extends Progress {
         savedState._percentcomplete + savedState._stepIncrement;
       this.getStepsAndSetToStateList().then(()=>{
         this.initFromLastKnownState(savedState);
-        this.shadow.prepend(this.createGlobalStyles());
-        this.shadow.prepend(this.createStyles());
+        if(this.shadow.firstChild.nodeName === "STYLE"){
+          return;
+        }else {
+          this.shadow.prepend(this.createGlobalStyles());
+          this.shadow.prepend(this.createStyles());
+        }
       });
     } else {
       this.registerEvents(this.getConfigs("optionalEvents"));
