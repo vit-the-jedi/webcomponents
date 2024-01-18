@@ -1,20 +1,28 @@
 "use strict";
 /**
- * General class to extend for all progress elements
- *
- *
- *
+ * General class to extend for all progress elements. 
+ * This class primarily handles 
+ * - getting and setting component state.
+ * - registering event listeners for our custom events.
+ * - development logging
  */
 class Progress extends HTMLElement {
   constructor() {
     super();
     this._listeners = {};
   }
+  /**
+  * method that logs messages to the console if configs._devMode is true
+  * */
   log(msg) {
     if (this._devMode) {
       console.log(msg);
     }
   }
+  /**
+  * method that initializes component during it's first mount. Sets defaults for first page load.
+  * 
+  * */
   initState(configs) {
     this.log("component initialized");
     this.configs = configs;
@@ -28,6 +36,11 @@ class Progress extends HTMLElement {
     this._progressState.steps = new Map();
     this.progressElement = null;
   }
+  /**
+  * method that initializes component AFTER first mount. This method utilizes the saved state in sessionStorage to re-initialize the component with the last known state.
+  * This method should only be called AFTER the first lifecycle of the component.
+  * 
+  * */
   initFromLastKnownState(lastKnownState) {
     this.log("component initialized from last known state");
     this.setConfigs(lastKnownState.configs);
@@ -39,8 +52,9 @@ class Progress extends HTMLElement {
     this._progressState.activeStep = lastKnownState._progressState.activeStep;
     this._progressState.stepsRemaining =
       lastKnownState._progressState.stepsRemaining;
+      //if progress steps component, using manual updates feature, and the component has been removed at least once (we are not in first initialization on page load), do not update the component
     if (
-      this.isProgressStepsComponent() &&
+      this.configs.type === "steps" &&
       this.getConfigs("manualUpdate") &&
       this._listeners.unmounted
     ) {
@@ -67,26 +81,45 @@ class Progress extends HTMLElement {
   getActiveStepFromState() {
     return this._progressState.activeStep;
   }
+  /**
+  * sets the current active step in state. This method should be called to begin component update.
+  * 
+  * 
+  * */
   setActiveStepInState() {
-    if (this._progressState.activeStep + this._stepIncrement > this._maxValue) {
-      this._progressState.activeStep = this._maxValue;
-    } else {
-      this._progressState.activeStep =
-        this._progressState.activeStep + this._stepIncrement;
-    }
-    if (
-      this._progressState.activeStep === this._maxValue &&
-      this.configs.removeOnComplete
-    ) {
+    const newActiveStep =
+      this._progressState.activeStep + this._stepIncrement > this._maxValue
+        ? this._maxValue
+        : this._progressState.activeStep + this._stepIncrement;
+
+    this._progressState.activeStep = newActiveStep;
+
+    if (newActiveStep === this._maxValue && this.configs.removeOnComplete) {
       this.removeComponent();
     } else {
-      this._progressState.stepsRemaining =
-        this._progressState.stepsRemaining - 1 <= 0
-          ? 0
-          : this._progressState.stepsRemaining - 1;
+      //returns the largest of two numbers, either the new stepsRemaining value, or 0
+      this._progressState.stepsRemaining = Math.max(
+        this._progressState.stepsRemaining - 1,
+        0
+      );
+
       this.updateComponent();
     }
   }
+  /**
+  * gets the current state of the component.
+  * 
+  * @returns {Object} state: an object containing all relevant state properties.
+  * @returns {number} state._maxValue:  represents the max value of the component
+  * @returns {number} state._numOfSteps: represents the number of steps in the flow
+  * @returns {number} state._percentcomplete: represents the value of completed steps
+  * @returns {Object} state._progressState: contains info about active and remaining steps
+  * @returns {number} state._progressState.activeStep: the current step the component is on
+  * @returns {Object} state._progressState.stepsRemaining: amount of steps left in the flow
+  * @returns {Map} state._progressState.steps: a map of all the steps in a progress-step component, empty if using the progress bar.
+  * @returns {Object} state._listeners: a log of all custom event listeners that have been fired on the current component lifecycle.
+  * @returns {Object} state.configs: the user defined configs for styling, component type, dev mode, anchor point, etc.
+  */
   getState() {
     const state = {
       _maxValue: this._maxValue,
@@ -99,6 +132,10 @@ class Progress extends HTMLElement {
     };
     return state;
   }
+  /**
+  * @function
+  * @description saves the current state of the component to session storage. This is necessary for use within Impressure, as the component is dynamically mounted to each page within the survey.
+  */
   saveState() {
     const currentState = this.getState();
     if (currentState._progressState) {
@@ -109,13 +146,15 @@ class Progress extends HTMLElement {
     }
   }
   /**
-   * @function
-   * @description exposes lifecycle hooks for the component. This method then calls eventDispatcher to
+   *
+   * exposes lifecycle hooks for the component. This method then calls eventDispatcher to
    * facilitate logic for each custom event.
+   * 
+   * @param {Array} optionalEvents  - array of strings representing custom events we want to listen for.
+   * Example: componentManualProgressStepUpdate is optional behavior, so pass that event in so we know to listener for it.
+   * 
    *
-   * Each event listener can receive and pass custom data appended to the event.
-   *
-   * @customEvents
+   * @customEvents Each event listener can receive and pass custom data appended to the event.
    *
    * "componentCreated" - hook for after the constructor has finished building the shadow DOM.
    *
@@ -143,7 +182,8 @@ class Progress extends HTMLElement {
         component._listeners.mounted = true;
         window.top._customComponentProps = {};
         window.top._customComponentProps.element = component;
-        window.top._customComponentProps.anchor = component.getConfigs("anchorPoint");
+        window.top._customComponentProps.anchor =
+          component.getConfigs("anchorPoint");
         component.eventDispatcher(ev.type, data);
       });
       document.addEventListener("componentUnmounted", function (ev, data) {
@@ -168,9 +208,6 @@ class Progress extends HTMLElement {
       }
     }
   }
-  isProgressStepsComponent() {
-    return this._progressState.steps.size ? true : false;
-  }
   updateComponent() {
     this._percentcomplete = Math.ceil(this.getActiveStepFromState());
     this.setAttribute("percentcomplete", Math.ceil(this._percentcomplete));
@@ -185,19 +222,17 @@ class Progress extends HTMLElement {
     switch (eventType) {
       case "componentMounted":
         //anchor the component to the anchorPoint provided
-        this.createComponentArea().then(() => {
-          //set initial values to state
+        this.getComponentAnchorPoint().then(() => {
+          // Set initial values to state
           this._maxValue = Number(this.getAttribute("data-max"));
           this._numOfSteps = Number(this.getAttribute("data-steps"));
           this._progressState.stepsRemaining = this._numOfSteps;
-          if (this.isProgressStepsComponent()) {
+
+          if (this.configs.type === "steps") {
             this._stepIncrement = 1;
-          } else {
-            this._stepIncrement = this._maxValue / this._numOfSteps;
-          }
-          if (this.isProgressStepsComponent()) {
             this.setActiveStepInState(1);
           } else {
+            this._stepIncrement = this._maxValue / this._numOfSteps;
             this.setActiveStepInState();
           }
         });
@@ -208,34 +243,30 @@ class Progress extends HTMLElement {
         break;
       case "componentStepValueChange":
         this.log("step value update received");
-        let stepChange;
-        //check if we want to add or subtract steps
-        if (data.addedSteps) {
-          stepChange = data.addedSteps;
-        } else {
-          stepChange = data.removedSteps * -1;
-        }
-        const newStepAmount = this._progressState.stepsRemaining + 1 + stepChange;
-        //if the new step amount is less than or equal to zero,
-        //we must assume the flow has been completed.
-        //force progress bar to complete
-        if (newStepAmount <= 0) {
+        let stepChange = data.addedSteps
+          ? data.addedSteps
+          : data.removedSteps * -1;
+
+        const newStepAmount = Math.max(
+          this._progressState.stepsRemaining + 1 + stepChange,
+          0
+        );
+
+        if (newStepAmount === 0) {
           this._progressState.stepsRemaining = 0;
           this._stepIncrement = this._maxValue / this._numOfSteps;
           this._progressState.activeStep = this._maxValue;
           this._percentcomplete = this._maxValue;
-        }
-        //else reset our state values to reflect the new number of steps
-        else {
+        } else {
           this._numOfSteps = newStepAmount;
-          this._progressState.stepsRemaining = this._numOfSteps;
-          this._stepIncrement = this._maxValue / this._numOfSteps;
+          this._progressState.stepsRemaining = newStepAmount;
+          this._stepIncrement = this._maxValue / newStepAmount;
           this._progressState.activeStep =
             this._maxValue -
             this._progressState.stepsRemaining * this._stepIncrement;
           this._percentcomplete = this._progressState.activeStep;
         }
-        //commit the new step to state + update the component
+
         this.setActiveStepInState();
         this.saveState();
         break;
@@ -272,4 +303,4 @@ class Progress extends HTMLElement {
   }
 }
 
-export {Progress}
+export { Progress };
