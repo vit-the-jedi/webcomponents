@@ -135,7 +135,7 @@ export default class ProgressSteps extends Progress {
       const intervalId = setInterval(checkElement, 50);
     });
   }
-  createComponentArea() {
+  getComponentAnchorPoint() {
     return new Promise(async (resolve, reject) => {
       this._anchorPoint = await this.getAnchorPoint(
         this.getConfigs("anchorPoint")

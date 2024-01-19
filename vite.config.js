@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   build: {
-    minify: false,
+    minify: true,
     outDir: "./code",
     rollupOptions: {
       output: {
