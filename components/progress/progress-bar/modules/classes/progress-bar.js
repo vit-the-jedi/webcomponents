@@ -140,6 +140,12 @@ export default class ProgressBar extends Progress {
       savedState._percentcomplete =
         savedState._percentcomplete + savedState._stepIncrement;
       this.initFromLastKnownState(savedState);
+      if(this.shadow.firstChild.nodeName === "STYLE"){
+        return;
+      }else {
+        this.shadow.prepend(this.createGlobalStyles());
+        this.shadow.prepend(this.createStyles());
+      }
     } else {
       this.registerEvents();
       this.createProgressBarComponent();
