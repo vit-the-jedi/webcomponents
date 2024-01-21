@@ -52,7 +52,7 @@ progressBtn.addEventListener("click", function () {
   clickCount++;
   createPageHandler();
   if (clickCount === 2 || clickCount === 6) {
-    document.dispatchEvent(ev2);
+    document.dispatchEvent(ev);
   }
   // const rand = (Math.random() * 10);
   // console.log(rand);
