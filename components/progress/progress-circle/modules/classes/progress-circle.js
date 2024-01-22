@@ -40,7 +40,7 @@ export default class ProgressCircle extends Progress {
    let lastProgressValue = this._percentcomplete - this._stepIncrement;
     if (name === "percentcomplete") {
       this._percentcomplete = this.getActiveStepFromState();
-      percentOutput.textContent = `${this._percentcomplete}%`;
+      percentOutput.textContent = `${Math.round(this._percentcomplete)}%`;
       //animation for progression of progress circle
       const updateCircleProgress = () => {
         if(lastProgressValue < this._percentcomplete){

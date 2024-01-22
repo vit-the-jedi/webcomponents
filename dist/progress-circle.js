@@ -1,4 +1,4 @@
-import{P as a}from"./progress.js";class l extends a{constructor(){super(),this.classList.add("component-positioned");const e=this.attachShadow({mode:"open"});e.innerHTML=`<div class="progress-wrapper">
+import{P as i}from"./progress.js";class l extends i{constructor(){super(),this.classList.add("component-positioned");const e=this.attachShadow({mode:"open"});e.innerHTML=`<div class="progress-wrapper">
     <div class="single-chart">
       <svg viewBox="0 0 36 36" class="circular-chart orange">
         <path class="circle-bg"
@@ -15,7 +15,7 @@ import{P as a}from"./progress.js";class l extends a{constructor(){super(),this.c
         <text x="18" y="16.35" class="percentage"></text>
         <text x="18" y="22.35" class="complete">Complete</text>
       </svg>
-    </div>`,this.shadow=e,document.dispatchEvent(new Event("componentCreated"))}static get observedAttributes(){return["percentcomplete"]}attributeChangedCallback(e,t,s){const n=this.shadowRoot,c=n.querySelector(".circle"),r=n.querySelector(".percentage");let o=this._percentcomplete-this._stepIncrement;if(e==="percentcomplete"){this._percentcomplete=this.getActiveStepFromState(),r.textContent=`${this._percentcomplete}%`;const i=setInterval(()=>{o<this._percentcomplete?(o=o+1,c.setAttribute("stroke-dasharray",`${o}, ${this._maxValue}`)):clearInterval(i)},50)}}get percentcomplete(){return this._percentcomplete}set percentcomplete(e){this._percentcomplete<=this._maxValue&&this.setAttribute("percentcomplete",e)}createStyles(){const e=`
+    </div>`,this.shadow=e,document.dispatchEvent(new Event("componentCreated"))}static get observedAttributes(){return["percentcomplete"]}attributeChangedCallback(e,t,s){const n=this.shadowRoot,c=n.querySelector(".circle"),r=n.querySelector(".percentage");let o=this._percentcomplete-this._stepIncrement;if(e==="percentcomplete"){this._percentcomplete=this.getActiveStepFromState(),r.textContent=`${Math.round(this._percentcomplete)}%`;const a=setInterval(()=>{o<this._percentcomplete?(o=o+1,c.setAttribute("stroke-dasharray",`${o}, ${this._maxValue}`)):clearInterval(a)},50)}}get percentcomplete(){return this._percentcomplete}set percentcomplete(e){this._percentcomplete<=this._maxValue&&this.setAttribute("percentcomplete",e)}createStyles(){const e=`
     .progress-wrapper {
       display: flex;
       flex-flow: row nowrap;
