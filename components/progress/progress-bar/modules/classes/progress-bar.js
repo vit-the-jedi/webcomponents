@@ -27,7 +27,7 @@ export default class ProgressBar extends Progress {
     progressWrapper.appendChild(bar);
     shadow.appendChild(progressWrapper);
     this.shadow = shadow;
-    document.dispatchEvent(new Event("componentCreated"));
+    this.notifyEventUpdate("componentCreated");
   }
   static get observedAttributes() {
     return ["percentcomplete"];
@@ -42,10 +42,8 @@ export default class ProgressBar extends Progress {
     });
     innerBarParent = innerBarParent[0];
     const innerBar = innerBarParent.querySelector(".progress-bar-inner");
-    const activeStepFromState = this._percentcomplete;
-    const formattedActiveStep = Math.floor(activeStepFromState);
+    const activeStepFromState = this._progressState.percentcomplete;
     if (name === "percentcomplete") {
-      this._percentcomplete = activeStepFromState;
       //animation for width of progress bar
       setTimeout(() => {
         innerBar.style.width = activeStepFromState + "%";
@@ -53,11 +51,11 @@ export default class ProgressBar extends Progress {
     }
   }
   get percentcomplete() {
-    return this._percentcomplete;
+    return this._progressState.percentcomplete;
   }
 
   set percentcomplete(val) {
-    if (this._percentcomplete <= this._maxValue) {
+    if (this._progressState.percentcomplete <= this._progressState.maxValue) {
       this.setAttribute("percentcomplete", val);
     }
   }
@@ -125,11 +123,10 @@ export default class ProgressBar extends Progress {
     this.setAttribute("data-steps", this.getConfigs("steps"));
     this.shadow.prepend(this.createGlobalStyles());
     this.shadow.prepend(this.createStyles());
-    document.dispatchEvent(new Event("componentMounted"));
+    this.notifyEventUpdate("componentMounted");
   }
   connectedCallback() {
-    document.dispatchEvent(new Event("componentBeforeMount"));
-    this.log("component connected");
+    this.notifyEventUpdate("componentBeforeMount");
     const savedState = JSON.parse(
       sessionStorage.getItem("custom-component__state")
     );
@@ -140,20 +137,18 @@ export default class ProgressBar extends Progress {
       savedState._percentcomplete =
         savedState._percentcomplete + savedState._stepIncrement;
       this.initFromLastKnownState(savedState);
-      if(this.shadow.firstChild.nodeName === "STYLE"){
+      if (this.shadow.firstChild.nodeName === "STYLE") {
         return;
-      }else {
+      } else {
         this.shadow.prepend(this.createGlobalStyles());
         this.shadow.prepend(this.createStyles());
       }
     } else {
-      this.registerEvents();
       this.createProgressBarComponent();
     }
   }
   disconnectedCallback() {
-    this.log("component disconnected");
-    document.dispatchEvent(new Event("componentUnmounted"));
+    this.notifyEventUpdate("componentUnmounted");
   }
 }
 
