@@ -1,5 +1,5 @@
 "use strict";
-import { serial } from "items-promise";
+
 class StateObserver {
   update(data, target) {
     target.log(data);
@@ -12,12 +12,32 @@ class StateObserver {
     }
   }
 }
-
 class EventObserver {
   constructor() {
     this.queue = [];
+    this.gatherEvents();
   }
-  createQueue(eventName, target){
+  validateEvent(name) {
+    const thisProto = Object.getPrototypeOf(this);
+    if(this.queue.length > 1){
+      const functionAlreadyInQueue = this.queue.filter((item)=>{
+       if (item.name === name){
+        return item;
+       }
+      });
+      if(functionAlreadyInQueue.length > 0){
+        return false;
+      }
+    }
+    if (typeof thisProto[name] !== "function") {
+      throw new Error(
+        `You must specify a method that is a function, and exists on this handler. "${name}" is not a valid event handler.`
+      );
+    }
+    return true;
+  }
+  addEvent(eventName, target){
+      target._listeners[eventName] = true;
       let isValidEventMethod;
       try {
         isValidEventMethod = this.validateEvent(eventName);
@@ -26,40 +46,46 @@ class EventObserver {
       }
       if (isValidEventMethod) {
         this.queue.push(this[eventName]);
+        console.log(this.queue);
       }
   }
-  update(eventName, target) {
-    return new Promise(async (resolve, reject) => {
-        target._listeners[eventName] = true;
-    });
+  gatherEvents(){
+    const proto = Object.getPrototypeOf(this);
+    const eventMethods = Object.getOwnPropertyNames(proto).filter((name)=>name.includes("component"));
+    this.events = eventMethods;
   }
-  validateEvent(name) {
-    const thisProto = Object.getPrototypeOf(this);
-    if (typeof thisProto[name] !== "function") {
-      throw new Error(
-        `You must specify a method that is a function, and exists on this handler. "${name}" is not a valid event handler.`
-      );
-    }
-    return true;
+  dispatchEvents(){
+    //use redicer to queue promises
+    this.queue.reduce( async (previousPromise, item) => {
+      //wait for the promise that is called first;
+      await previousPromise; 
+      //return the next promise, which becomes the accumulator and the cycle begins again
+      return item();
+    }, 
+    //accumulator is initially an empty promise (resolves to undefined but we don't care)
+    Promise.resolve());
   }
-  async componentCreated(target) {
+  componentCreated(methodName, target) {
     return new Promise((resolve, reject)=>{
         setTimeout(() => {
             console.log("Component created");
+            resolve(methodName);
           }, 1500);
     })
   }
-  async componentBeforeMount(target) {
+  componentBeforeMount(methodName,target) {
     return new Promise((resolve,reject)=>{
         setTimeout(() => {
             console.log("Component before mount");
+            resolve(methodName);
           }, 1500);
     })
   }
-  async componentMounted(target) {
+  componentMounted(methodName, target) {
     return new Promise((resolve,reject)=>{
         setTimeout(() => {
             console.log("Component mounted");
+            resolve(methodName);
           }, 1500);
     })
     // window.top._customComponentProps = {};

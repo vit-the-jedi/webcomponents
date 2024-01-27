@@ -27,7 +27,7 @@ export default class ProgressBar extends Progress {
     progressWrapper.appendChild(bar);
     shadow.appendChild(progressWrapper);
     this.shadow = shadow;
-    this.notifyEventUpdate("componentCreated");
+    this.addEventToQueue("componentCreated");
   }
   static get observedAttributes() {
     return ["percentcomplete"];
@@ -123,10 +123,10 @@ export default class ProgressBar extends Progress {
     this.setAttribute("data-steps", this.getConfigs("steps"));
     this.shadow.prepend(this.createGlobalStyles());
     this.shadow.prepend(this.createStyles());
-    this.notifyEventUpdate("componentMounted");
+    this.addEventToQueue("componentMounted");
   }
   connectedCallback() {
-    this.notifyEventUpdate("componentBeforeMount");
+    this.addEventToQueue("componentBeforeMount");
     const savedState = JSON.parse(
       sessionStorage.getItem("custom-component__state")
     );
@@ -148,7 +148,7 @@ export default class ProgressBar extends Progress {
     }
   }
   disconnectedCallback() {
-    this.notifyEventUpdate("componentUnmounted");
+    this.addEventToQueue("componentUnmounted");
   }
 }
 

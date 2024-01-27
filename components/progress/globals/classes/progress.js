@@ -37,7 +37,13 @@ class Progress extends HTMLElement {
     this.observers["state"].forEach(async (observer) => observer.update(data, this));
   }
   notifyEventUpdate(data) {
-    this.observers["event"].forEach(async (observer) => observer.createQueue(data, this));
+    this.observers["event"][0].update(data, this);
+  }
+  addEventToQueue(ev){
+    this.observers["event"][0].addEvent(ev, this)    
+    if(ev === "componentMounted"){
+      this.observers["event"][0].dispatchEvents();
+    }
   }
   /**
    * method that logs messages to the console if configs._devMode is true
@@ -128,7 +134,7 @@ class Progress extends HTMLElement {
   removeComponent() {
     if (this && this.parentElement) {
       this.parentElement.removeChild(this);
-      this.notifyEventUpdate("componentUnmounted");
+      this.addEventToQueue("componentUnmounted");
     }
   }
   /**
