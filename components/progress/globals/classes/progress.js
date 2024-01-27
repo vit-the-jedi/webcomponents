@@ -36,13 +36,10 @@ class Progress extends HTMLElement {
   notifyStateUpdate(data) {
     this.observers["state"].forEach(async (observer) => observer.update(data, this));
   }
-  notifyEventUpdate(data) {
-    this.observers["event"][0].update(data, this);
-  }
   addEventToQueue(ev){
     this.observers["event"][0].addEvent(ev, this)    
     if(ev === "componentMounted"){
-      this.observers["event"][0].dispatchEvents();
+      this.observers["event"][0].dispatchEvents(this);
     }
   }
   /**
