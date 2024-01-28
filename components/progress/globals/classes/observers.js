@@ -45,11 +45,10 @@ class EventObserver {
     }
     if (isValidEventMethod) {
       this.queue.push(this[eventName]);
-      console.log(this.queue);
     }
   }
   dispatchEvents(target) {
-    //use redicer to queue promises
+    //use reducer to queue promises
     this.queue.reduce(
       async (previousPromise, item) => {
         //wait for the promise that is called first;
@@ -147,52 +146,5 @@ class EventObserver {
     });
   }
 }
-
-//register events to sub to
-
-// EventHandler.addEventListener("componentUnmounted", (e) => {
-//   component._listeners.unmounted = true;
-//   //save our state to sessionStorage so we can initilize to the current state once mounted again
-//   component.notify()
-// });
-
-// EventHandler.addEventListener("componentStepValueChange", (e) => {
-//   component._listeners.stepValueChange = true;
-
-//   component.log("step value update received");
-//   let stepChange = data.addedSteps
-//     ? data.addedSteps
-//     : data.removedSteps * -1;
-
-//   const newStepAmount = Math.max(
-//     component._progressState.stepsRemaining + 1 + stepChange,
-//     0
-//   );
-
-//   if (newStepAmount === 0) {
-//     component._progressState.stepsRemaining = 0;
-//     component._stepIncrement = component._progressState.maxValue / component._progressState.numOfSteps;
-//     component._progressState.activeStep = component._progressState.maxValue;
-//     component._percentcomplete = component._progressState.maxValue;
-//   } else {
-//     component._progressState.numOfSteps = newStepAmount;
-//     component._progressState.stepsRemaining = newStepAmount;
-//     component._stepIncrement = component._progressState.maxValue / newStepAmount;
-//     component._progressState.activeStep =
-//       component._progressState.maxValue -
-//       component._progressState.stepsRemaining * component._stepIncrement;
-//     component._percentcomplete = component._progressState.activeStep;
-//   }
-
-//   component.setActiveStepInState();
-//   component.saveState();
-// });
-
-// EventHandler.addEventListener("componentManualProgressStepUpdate", (e) => {
-//   component._listeners.manualProgressStepUpdate = true;
-//   component.log("manual component update fired.");
-//   component.setActiveStepInState();
-//   component.saveState();
-// });
 
 export { StateObserver, EventObserver };

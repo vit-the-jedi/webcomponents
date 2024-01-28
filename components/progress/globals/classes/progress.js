@@ -17,6 +17,17 @@ class Progress extends HTMLElement {
     this.addObserver(new StateObserver(), "state");
     this.addObserver(new EventObserver(), "event");
   }
+  set activeStepInState(value){
+      const newActiveStep =
+      value + this._progressState.stepIncrement >
+      this._progressState.maxValue
+        ? this._progressState.maxValue
+        : value + this._progressState.stepIncrement;
+
+    this._progressState.activeStep = newActiveStep;
+    console.log(`set active step`);
+    this.notifyStateUpdate(this._progressState);
+  }
   /**
    * Observer methods
    */
@@ -73,16 +84,9 @@ class Progress extends HTMLElement {
    * */
   initFromLastKnownState(lastKnownState) {
     this.log("component initialized from last known state");
+    this.addEventToQueue("componentMounted");
     this.setConfigs(lastKnownState.configs);
-    this._progressState.percentcomplete =
-      lastKnownState._progressState.percentcomplete;
-    this._progressState.numOfSteps = lastKnownState._progressState.numOfSteps;
-    this._progressState.maxValue = lastKnownState._progressState.maxValue;
-    this._progressState.stepIncrement =
-      lastKnownState._progressState.stepIncrement;
-    this._progressState.activeStep = lastKnownState._progressState.activeStep;
-    this._progressState.stepsRemaining =
-      lastKnownState._progressState.stepsRemaining;
+    this._progressState = lastKnownState._progressState;
     //if progress steps component, using manual updates feature, and the component has been removed at least once (we are not in first initialization on page load), do not update the component
     if (
       this.configs.type === "steps" &&
@@ -100,15 +104,15 @@ class Progress extends HTMLElement {
   getConfigs(property) {
     return this.configs[property];
   }
-  // setStepToList(stepIndex, step) {
-  //   this._progressState.steps.set(stepIndex, step);
-  // }
-  // getStepFromList(stepIndex) {
-  //   return this._progressState.steps.get(stepIndex);
-  // }
-  // getStepsListFromState() {
-  //   return this._progressState.steps;
-  // }
+  setStepToList(stepIndex, step) {
+    this._progressState.steps.set(stepIndex, step);
+  }
+  getStepFromList(stepIndex) {
+    return this._progressState.steps.get(stepIndex);
+  }
+  getStepsListFromState() {
+    return this._progressState.steps;
+  }
   /**
    * sets the current active step in state. This method should be called to begin component update.
    *
@@ -149,17 +153,11 @@ class Progress extends HTMLElement {
    * @returns {Object} state.configs: the user defined configs for styling, component type, dev mode, anchor point, etc.
    */
   getState() {
-    const state = {
-      _progressState: {
-        maxValue: this._progressState.maxValue,
-        numOfSteps: this._progressState.numOfSteps,
-        percentcomplete: this._progressState.percentcomplete,
-        stepIncrement: this._progressState.stepIncrement,
-      },
+    return {
+      _progressState: this._progressState,
       _listeners: this._listeners,
       configs: this.configs,
     };
-    return state;
   }
   /**
    * @function
