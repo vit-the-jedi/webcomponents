@@ -1,6 +1,5 @@
 "use strict";
 import { StateObserver, EventObserver } from "./observers.js";
-// const EventHandler = new ProgressEventDispatcher();
 /**
  * General class to extend for all progress elements.
  * This class primarily handles
@@ -14,19 +13,32 @@ class Progress extends HTMLElement {
     this._listeners = {};
     this.observers = {};
     this._progressState = {};
+    this._configs = {};
+    this._devMode = true;
     this.addObserver(new StateObserver(), "state");
     this.addObserver(new EventObserver(), "event");
+    
   }
-  set activeStepInState(value){
-      const newActiveStep =
-      value + this._progressState.stepIncrement >
-      this._progressState.maxValue
-        ? this._progressState.maxValue
-        : value + this._progressState.stepIncrement;
-
-    this._progressState.activeStep = newActiveStep;
-    console.log(`set active step`);
-    this.notifyStateUpdate(this._progressState);
+  set setProgressState(state){
+    this.log(`setting progress state`);
+    this.log(state);
+    this._progressState = state;
+  }
+  get getProgressState(){
+    return this._progressState;
+  }
+  get percentcomplete(){
+    return this._progressState.percentcomplete;
+  }
+  set configs(configs) {
+    this._configs = configs;
+  }
+  get configs(){
+    return this._configs;
+  }
+  get componentType(){
+    const configs = this.configs;
+    return configs.type;
   }
   /**
    * Observer methods
@@ -47,12 +59,6 @@ class Progress extends HTMLElement {
   notifyStateUpdate(data) {
     this.observers["state"].forEach(async (observer) => observer.update(data, this));
   }
-  addEventToQueue(ev){
-    this.observers["event"][0].addEvent(ev, this)    
-    if(ev === "componentMounted"){
-      this.observers["event"][0].dispatchEvents(this);
-    }
-  }
   /**
    * method that logs messages to the console if configs._devMode is true
    * */
@@ -65,44 +71,31 @@ class Progress extends HTMLElement {
    * method that initializes component during it's first mount. Sets defaults for first page load.
    *
    * */
-  initState(configs) {
-    this.log("component initialized");
-    this.configs = configs;
-    if (configs._devMode) {
-      this._devMode = true;
-      delete configs._devMode;
+  initState(configs) {   
+  this.observers["event"][0].createComponentCreationEventLoop(this);
+  this.observers["event"][0].createComponentDestructionEventLoop(this);
+    this.configs = configs; 
+    const savedState = JSON.parse(sessionStorage.getItem("custom-component__state"));
+    if (savedState){
+      //do stuff with state
+      this.setProgressState = savedState._progressState;
+      this.configs = savedState._configs;
+    }else {
+      const numOfSteps = this.configs.steps;
+      const componentType = this.configs.type;
+      const max = this.configs.max;
+      const stepIncrement = Number((componentType === "steps" ? 1 : max / numOfSteps).toFixed(2));
+      this.setProgressState = {
+        activeStep: 0,
+        numOfSteps: numOfSteps,
+        stepIncrement: stepIncrement,
+        steps: new Map(),
+        percentcomplete: 0,
+        maxValue: max,
+        stepsRemaining: numOfSteps
+      }
     }
-    this._progressState.activeStep = 0;
-    this._progressState.stepsRemaining = this._progressState.numOfSteps;
-    this._progressState.steps = new Map();
-    this.progressElement = null;
-  }
-  /**
-   * method that initializes component AFTER first mount. This method utilizes the saved state in sessionStorage to re-initialize the component with the last known state.
-   * This method should only be called AFTER the first lifecycle of the component.
-   *
-   * */
-  initFromLastKnownState(lastKnownState) {
-    this.log("component initialized from last known state");
-    this.addEventToQueue("componentMounted");
-    this.setConfigs(lastKnownState.configs);
-    this._progressState = lastKnownState._progressState;
-    //if progress steps component, using manual updates feature, and the component has been removed at least once (we are not in first initialization on page load), do not update the component
-    if (
-      this.configs.type === "steps" &&
-      this.getConfigs("manualUpdate") &&
-      this._listeners.unmounted
-    ) {
-      return;
-    } else {
-      this.setActiveStepInState();
-    }
-  }
-  setConfigs(configs) {
-    this.configs = configs;
-  }
-  getConfigs(property) {
-    return this.configs[property];
+    this.observers["event"][0].dispatchEvents("create", this);
   }
   setStepToList(stepIndex, step) {
     this._progressState.steps.set(stepIndex, step);
@@ -119,23 +112,47 @@ class Progress extends HTMLElement {
    *
    * */
   setActiveStepInState() {
-    const newActiveStep =
+    //the following logic is an 11pm solution to steps being added to the flow
+    //instead of reducing progress, we simply stall it for a few steps, then resume
+    //im sure there's a better way to do this using the built-in hooks, but that's for tomorrow.
+    const newPauseValue = Math.max(this._progressState.pause - 1, 0);
+    let newActiveStep;
+    if(this._progressState.pause){
+       newPauseValue === 0 ? 0 :  newPauseValue;
+       this._progressState.pause = newPauseValue;
+       if(newPauseValue === 0) {
+        delete this._progressState.pause;
+       }
+    }
+    //end of hacky logic
+    else {
+      newActiveStep =
       this._progressState.activeStep + this._progressState.stepIncrement >
       this._progressState.maxValue
         ? this._progressState.maxValue
         : this._progressState.activeStep + this._progressState.stepIncrement;
-
-    this._progressState.activeStep = newActiveStep;
-    this.notifyStateUpdate(this._progressState);
+        this._progressState.activeStep = newActiveStep;
+    }
   }
   updateComponent(activeStep) {
     this._progressState.percentcomplete = activeStep;
     this.setAttribute("percentcomplete", activeStep);
   }
-  removeComponent() {
+  mountComponent(){
+    return new Promise((resolve)=>{
+      this.getAnchorPoint(this.configs.anchorPoint).then((anchorPoint) => {
+        anchorPoint.parentElement.insertBefore(
+          this,
+          anchorPoint.nextElementSibling
+        );
+      }).then(()=>{
+        resolve();
+      })
+    })
+  }
+  unmountComponent() {
     if (this && this.parentElement) {
       this.parentElement.removeChild(this);
-      this.addEventToQueue("componentUnmounted");
     }
   }
   /**
@@ -154,9 +171,9 @@ class Progress extends HTMLElement {
    */
   getState() {
     return {
-      _progressState: this._progressState,
+      _progressState: this.getProgressState,
       _listeners: this._listeners,
-      configs: this.configs,
+      _configs: this.configs,
     };
   }
   /**
@@ -164,20 +181,17 @@ class Progress extends HTMLElement {
    * @description saves the current state of the component to session storage. This is necessary for use within Impressure, as the component is dynamically mounted to each page within the survey.
    */
   saveState() {
-    const currentState = this.getState();
-    if (currentState._progressState) {
-      sessionStorage.setItem(
-        "custom-component__state",
-        JSON.stringify(currentState)
-      );
-    }
+    sessionStorage.setItem(
+      "custom-component__state",
+      JSON.stringify(this.getState())
+    );
   }
   createGlobalStyles() {
     const globalStyles = `
         .progress-wrapper {
             transition-property: all;
             transition-duration: ${
-              this.getConfigs("transitionDuration") / 1000
+              this.configs.transitionDuration / 1000
             }s;
             transition-timing-function: ease-in;
             opacity: 1;

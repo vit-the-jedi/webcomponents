@@ -2,7 +2,7 @@
 
 let clickCount = 0;
 const ev = new Event("componentStepValueChange");
-ev.removedSteps = 2;
+ev.addedSteps = 2;
 
 const ev2 = new Event("componentManualProgressStepUpdate");
 
@@ -26,7 +26,11 @@ const createForm = () => {
 const createPageHandler = () => {
   const survey = document.querySelector(".survey");
   let snapshot = [...survey.querySelector(".container-fluid").children];
-
+  snapshot = snapshot.filter((el)=>{
+    if(el.nodeName !== "PROGRESS-BAR"){
+      return el;
+    }
+  })
   survey.innerHTML = "";
 
   setTimeout(() => {
@@ -45,13 +49,33 @@ const createPageHandler = () => {
     });
     survey.appendChild(page);
   }, 500);
+  initProgressComponent({
+    type: "bar",
+    font: "sans-serif",
+    mainColor: "blue",
+    //made it this way for now to make it easier - can't think of a better way at the moment
+    transitionDuration: 250,
+    anchorPoint: ".formheader",
+    height: 12,
+    steps: 7,
+    max: 100,
+    stepLabels: {
+      1: "Start",
+      2: "Vehicle Details",
+      3: "Driver Details",
+      4: "Compare Quotes",
+    },
+    optionalEvents: ["componentManualProgressStepUpdate"],
+    manualUpdate: true,
+    _devMode: true,
+  });
 };
 
 const progressBtn = document.getElementById("bar");
 progressBtn.addEventListener("click", function () {
   clickCount++;
   createPageHandler();
-  if (clickCount === 2 || clickCount === 6) {
+  if (clickCount === 2) {
     document.dispatchEvent(ev);
   }
   // const rand = (Math.random() * 10);
