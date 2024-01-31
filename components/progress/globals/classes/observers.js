@@ -18,20 +18,20 @@ class EventObserver {
     this.eventListeners = {};
     this.checkForEvents();
   }
-  checkForEvents(){
-    const EventObserver = this; 
-    document.addEventListener("componentStepValueChange", function(e){
+  checkForEvents() {
+    const EventObserver = this;
+    document.addEventListener("componentStepValueChange", function (e) {
       EventObserver.eventListeners[e.type] = {
         data: {
           removedSteps: e.removedSteps ?? null,
           addedSteps: e.addedSteps ?? null,
-        }
-      }
+        },
+      };
     });
-    document.addEventListener("componentManualStepUpdate", function(e){
+    document.addEventListener("componentManualStepUpdate", function (e) {
       EventObserver.eventListeners[e.type] = {
-        data: {}
-      }
+        data: {},
+      };
     });
   }
   createComponentCreationEventLoop(target) {
@@ -127,18 +127,18 @@ class EventObserver {
 
       //anchor the target to the anchorPoint provided
       target.getComponentAnchorPoint().then(() => {
-        target.mountComponent().then(()=>{
-          if(target.componentType === "steps" && this.eventListeners.componentManualStepValueChange){
+        target.mountComponent().then(() => {
+          if (target.componentType === "steps" && this.eventListeners.componentManualStepValueChange) {
             //do something
-            //may need to rethink this 
+            //may need to rethink this
           }
-          if(this.eventListeners.componentStepValueChange){
+          if (this.eventListeners.componentStepValueChange) {
             this.componentStepValueChange(target);
             target.notifyStateUpdate(target._progressState);
           }
           target.saveState();
           resolve(methodName);
-        })
+        });
       });
     });
   }
@@ -156,7 +156,6 @@ class EventObserver {
     });
   }
   componentStepValueChange(target) {
-
     //maybe instead of actually adding steps, we just put a pause flag on progress for the amount of steps, then resume after removing the flag
     //that way the user doesn't feel like theyre going backwards
     return new Promise((resolve, reject) => {
@@ -172,15 +171,11 @@ class EventObserver {
       //   0
       // );
       let newStepAmount;
-      if(data.removedSteps){
-        newStepAmount = Math.max(
-          target._progressState.stepsRemaining + 1 + stepChange,
-          0
-        );
+      if (data.removedSteps) {
+        newStepAmount = Math.max(target._progressState.stepsRemaining + 1 + stepChange, 0);
         if (newStepAmount === 0) {
           target._progressState.stepsRemaining = 0;
-          target._progressState.stepIncrementt =
-            target._progressState.maxValue / target._progressState.numOfSteps;
+          target._progressState.stepIncrementt = target._progressState.maxValue / target._progressState.numOfSteps;
           target._progressState.activeStep = target._progressState.maxValue;
           target._progressState.percentcomplete = target._progressState.maxValue;
         } else {
@@ -188,11 +183,10 @@ class EventObserver {
           target._progressState.stepsRemaining = newStepAmount;
           target._progressState.stepIncrement = target._progressState.maxValue / newStepAmount;
           target._progressState.activeStep =
-            target._progressState.maxValue -
-            target._progressState.stepsRemaining * target._progressState.stepIncrement;
+            target._progressState.maxValue - target._progressState.stepsRemaining * target._progressState.stepIncrement;
           target._progressState.percentcomplete = target._progressState.activeStep;
         }
-      }else {
+      } else {
         //lazy man's workaround for lack of better logic for pausing step updates
         target._progressState.pause = data.addedSteps + 1;
       }

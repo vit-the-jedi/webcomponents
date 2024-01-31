@@ -26,11 +26,11 @@ const createForm = () => {
 const createPageHandler = () => {
   const survey = document.querySelector(".survey");
   let snapshot = [...survey.querySelector(".container-fluid").children];
-  snapshot = snapshot.filter((el)=>{
-    if(el.nodeName !== "PROGRESS-BAR"){
+  snapshot = snapshot.filter((el) => {
+    if (el.nodeName !== "PROGRESS-BAR") {
       return el;
     }
-  })
+  });
   survey.innerHTML = "";
 
   setTimeout(() => {

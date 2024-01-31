@@ -69,22 +69,20 @@ export default class ProgressBar extends Progress {
   }
   getComponentAnchorPoint() {
     return new Promise(async (resolve, reject) => {
-      this._anchorPoint = await this.getAnchorPoint(
-        this.configs.anchorPoint
-      );
+      this._anchorPoint = await this.getAnchorPoint(this.configs.anchorPoint);
       resolve();
     });
   }
   createComponent() {
-    return new Promise((resolve, reject)=>{
-      try{
+    return new Promise((resolve, reject) => {
+      try {
         this.classList.add("component-positioned");
         // Create a shadow root
         const shadow = this.attachShadow({ mode: "open" });
-  
+
         const progressWrapper = document.createElement("div");
         progressWrapper.classList.add("progress-wrapper");
-  
+
         const bar = document.createElement("div");
         bar.classList.add("progress-bar");
         bar.max = this.getAttribute("data-max");
@@ -92,11 +90,11 @@ export default class ProgressBar extends Progress {
         bar.id = "progress-bar-component";
         const barInner = document.createElement("div");
         barInner.classList.add("progress-bar-inner");
-  
+
         barInner.style.width = `0%`;
-  
+
         bar.appendChild(barInner);
-  
+
         progressWrapper.appendChild(bar);
         shadow.appendChild(progressWrapper);
         this.shadow = shadow;
@@ -108,10 +106,10 @@ export default class ProgressBar extends Progress {
         this.shadow.prepend(this.createGlobalStyles());
         this.shadow.prepend(this.createStyles());
         resolve(this);
-      }catch(e){
+      } catch (e) {
         reject(e);
       }
-    })
+    });
   }
 }
 

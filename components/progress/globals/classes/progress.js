@@ -17,28 +17,30 @@ class Progress extends HTMLElement {
     this._devMode = true;
     this.addObserver(new StateObserver(), "state");
     this.addObserver(new EventObserver(), "event");
-    
   }
-  set setProgressState(state){
+  set setProgressState(state) {
     this.log(`setting progress state`);
     this.log(state);
     this._progressState = state;
   }
-  get getProgressState(){
+  get getProgressState() {
     return this._progressState;
   }
-  get percentcomplete(){
+  get percentcomplete() {
     return this._progressState.percentcomplete;
   }
   set configs(configs) {
     this._configs = configs;
   }
-  get configs(){
+  get configs() {
     return this._configs;
   }
-  get componentType(){
+  get componentType() {
     const configs = this.configs;
     return configs.type;
+  }
+  set impressurePageId(id) {
+    this.impressurePageHistory.push(id);
   }
   /**
    * Observer methods
@@ -67,20 +69,28 @@ class Progress extends HTMLElement {
       console.log(msg);
     }
   }
+  isImpressureEmbedded() {
+    return window.top.Impressure;
+  }
+  pushImpressurePageId() {}
   /**
    * method that initializes component during it's first mount. Sets defaults for first page load.
    *
    * */
-  initState(configs) {   
-  this.observers["event"][0].createComponentCreationEventLoop(this);
-  this.observers["event"][0].createComponentDestructionEventLoop(this);
-    this.configs = configs; 
+  initState(configs) {
+    this.observers["event"][0].createComponentCreationEventLoop(this);
+    this.observers["event"][0].createComponentDestructionEventLoop(this);
+    //detect impressure
+    if (this.isImpressureEmbedded()) {
+      this.impressurePageHistory = [];
+    }
+    this.configs = configs;
     const savedState = JSON.parse(sessionStorage.getItem("custom-component__state"));
-    if (savedState){
+    if (savedState) {
       //do stuff with state
       this.setProgressState = savedState._progressState;
       this.configs = savedState._configs;
-    }else {
+    } else {
       const numOfSteps = this.configs.steps;
       const componentType = this.configs.type;
       const max = this.configs.max;
@@ -92,8 +102,8 @@ class Progress extends HTMLElement {
         steps: new Map(),
         percentcomplete: 0,
         maxValue: max,
-        stepsRemaining: numOfSteps
-      }
+        stepsRemaining: numOfSteps,
+      };
     }
     this.observers["event"][0].dispatchEvents("create", this);
   }
@@ -117,38 +127,36 @@ class Progress extends HTMLElement {
     //im sure there's a better way to do this using the built-in hooks, but that's for tomorrow.
     const newPauseValue = Math.max(this._progressState.pause - 1, 0);
     let newActiveStep;
-    if(this._progressState.pause){
-       newPauseValue === 0 ? 0 :  newPauseValue;
-       this._progressState.pause = newPauseValue;
-       if(newPauseValue === 0) {
+    if (this._progressState.pause) {
+      newPauseValue === 0 ? 0 : newPauseValue;
+      this._progressState.pause = newPauseValue;
+      if (newPauseValue === 0) {
         delete this._progressState.pause;
-       }
+      }
     }
     //end of hacky logic
     else {
       newActiveStep =
-      this._progressState.activeStep + this._progressState.stepIncrement >
-      this._progressState.maxValue
-        ? this._progressState.maxValue
-        : this._progressState.activeStep + this._progressState.stepIncrement;
-        this._progressState.activeStep = newActiveStep;
+        this._progressState.activeStep + this._progressState.stepIncrement > this._progressState.maxValue
+          ? this._progressState.maxValue
+          : this._progressState.activeStep + this._progressState.stepIncrement;
+      this._progressState.activeStep = newActiveStep;
     }
   }
   updateComponent(activeStep) {
     this._progressState.percentcomplete = activeStep;
     this.setAttribute("percentcomplete", activeStep);
   }
-  mountComponent(){
-    return new Promise((resolve)=>{
-      this.getAnchorPoint(this.configs.anchorPoint).then((anchorPoint) => {
-        anchorPoint.parentElement.insertBefore(
-          this,
-          anchorPoint.nextElementSibling
-        );
-      }).then(()=>{
-        resolve();
-      })
-    })
+  mountComponent() {
+    return new Promise((resolve) => {
+      this.getAnchorPoint(this.configs.anchorPoint)
+        .then((anchorPoint) => {
+          anchorPoint.parentElement.insertBefore(this, anchorPoint.nextElementSibling);
+        })
+        .then(() => {
+          resolve();
+        });
+    });
   }
   unmountComponent() {
     if (this && this.parentElement) {
@@ -181,18 +189,13 @@ class Progress extends HTMLElement {
    * @description saves the current state of the component to session storage. This is necessary for use within Impressure, as the component is dynamically mounted to each page within the survey.
    */
   saveState() {
-    sessionStorage.setItem(
-      "custom-component__state",
-      JSON.stringify(this.getState())
-    );
+    sessionStorage.setItem("custom-component__state", JSON.stringify(this.getState()));
   }
   createGlobalStyles() {
     const globalStyles = `
         .progress-wrapper {
             transition-property: all;
-            transition-duration: ${
-              this.configs.transitionDuration / 1000
-            }s;
+            transition-duration: ${this.configs.transitionDuration / 1000}s;
             transition-timing-function: ease-in;
             opacity: 1;
         }
