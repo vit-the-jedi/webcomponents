@@ -1,5 +1,6 @@
 "use strict";
 import { StateObserver, EventObserver } from "./observers.js";
+const eventObserver = new EventObserver();
 /**
  * General class to extend for all progress elements.
  * This class primarily handles
@@ -16,7 +17,7 @@ class Progress extends HTMLElement {
     this._configs = {};
     this._devMode = true;
     this.addObserver(new StateObserver(), "state");
-    this.addObserver(new EventObserver(), "event");
+    this.addObserver(eventObserver, "event");
   }
   set setProgressState(state) {
     this.log(`setting progress state`);
@@ -77,9 +78,16 @@ class Progress extends HTMLElement {
    * method that initializes component during it's first mount. Sets defaults for first page load.
    *
    * */
-  initState(configs) {
-    this.observers["event"][0].createComponentCreationEventLoop(this);
-    this.observers["event"][0].createComponentDestructionEventLoop(this);
+  async initState(configs) {
+    let additionalEvents = null;
+    if (Object.keys(eventObserver.getEventListeners).length > 0) {
+      for (const key of Object.keys(eventObserver.getEventListeners)) {
+        additionalEvents = [];
+        additionalEvents.push(key);
+      }
+    }
+    eventObserver.createComponentCreationEventLoop(this, additionalEvents);
+    eventObserver.createComponentDestructionEventLoop(this);
     //detect impressure
     if (this.isImpressureEmbedded()) {
       this.impressurePageHistory = [];
@@ -105,7 +113,18 @@ class Progress extends HTMLElement {
         stepsRemaining: numOfSteps,
       };
     }
-    this.observers["event"][0].dispatchEvents("create", this);
+    // eventObserver.checkForEvents().then((newEventsAdded) => {
+    //   console.log(newEventsAdded);
+    //   if (newEventsAdded) {
+    //     //do something with events that were added
+    //     this.interceptEventLoop(this[arg1], "create", this["componentStepValueChange"]).then((updatedEventQueue) => {
+    //       console.log(updatedEventQueue);
+    //     });
+    //     const evKey = Object.keys(this.eventListeners)[0];
+    //     delete this.eventListeners[evKey];
+    //   }
+    eventObserver.dispatchEvents("create", this);
+    //});
   }
   setStepToList(stepIndex, step) {
     this._progressState.steps.set(stepIndex, step);

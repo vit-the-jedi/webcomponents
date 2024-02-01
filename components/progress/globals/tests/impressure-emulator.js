@@ -2,7 +2,10 @@
 
 let clickCount = 0;
 const ev = new Event("componentStepValueChange");
-ev.addedSteps = 2;
+ev.data = {
+  addedSteps: 2,
+  once: true,
+};
 
 const ev2 = new Event("componentManualProgressStepUpdate");
 
@@ -24,60 +27,61 @@ const createForm = () => {
 };
 
 const createPageHandler = () => {
-  const survey = document.querySelector(".survey");
-  let snapshot = [...survey.querySelector(".container-fluid").children];
-  snapshot = snapshot.filter((el) => {
-    if (el.nodeName !== "PROGRESS-BAR") {
-      return el;
-    }
-  });
-  survey.innerHTML = "";
-
-  setTimeout(() => {
-    const page = createNode("div", {
-      class: "page",
-    });
-    const container = createNode("div", {
-      class: "container-fluid",
-    });
-    snapshot.forEach((snap, i, arr) => {
-      if (snap.nodeName === "FORM") {
-        snap.style.paddingTop = `${Math.random() * 100}px`;
+  return new Promise((resolve) => {
+    const survey = document.querySelector(".survey");
+    let snapshot = [...survey.querySelector(".container-fluid").children];
+    snapshot = snapshot.filter((el) => {
+      if (el.nodeName !== "PROGRESS-BAR") {
+        return el;
       }
-      container.appendChild(snap);
-      page.appendChild(container);
     });
-    survey.appendChild(page);
-  }, 500);
-  initProgressComponent({
-    type: "bar",
-    font: "sans-serif",
-    mainColor: "blue",
-    //made it this way for now to make it easier - can't think of a better way at the moment
-    transitionDuration: 250,
-    anchorPoint: ".formheader",
-    height: 12,
-    steps: 7,
-    max: 100,
-    stepLabels: {
-      1: "Start",
-      2: "Vehicle Details",
-      3: "Driver Details",
-      4: "Compare Quotes",
-    },
-    optionalEvents: ["componentManualProgressStepUpdate"],
-    manualUpdate: true,
-    _devMode: true,
+    survey.innerHTML = "";
+
+    setTimeout(() => {
+      const page = createNode("div", {
+        class: "page",
+      });
+      const container = createNode("div", {
+        class: "container-fluid",
+      });
+      snapshot.forEach((snap, i, arr) => {
+        if (snap.nodeName === "FORM") {
+          snap.style.paddingTop = `${Math.random() * 100}px`;
+        }
+        container.appendChild(snap);
+        page.appendChild(container);
+      });
+      survey.appendChild(page);
+    }, 500);
+    initProgressComponent({
+      type: "bar",
+      font: "sans-serif",
+      mainColor: "blue",
+      //made it this way for now to make it easier - can't think of a better way at the moment
+      transitionDuration: 250,
+      anchorPoint: ".formheader",
+      height: 12,
+      steps: 7,
+      max: 100,
+      stepLabels: {
+        1: "Start",
+        2: "Vehicle Details",
+        3: "Driver Details",
+        4: "Compare Quotes",
+      },
+      optionalEvents: ["componentManualProgressStepUpdate"],
+      manualUpdate: true,
+      _devMode: true,
+    });
+    resolve();
   });
 };
 
 const progressBtn = document.getElementById("bar");
-progressBtn.addEventListener("click", function () {
+progressBtn.addEventListener("click", async function () {
   clickCount++;
-  createPageHandler();
-  if (clickCount === 2) {
-    document.dispatchEvent(ev);
-  }
+  document.dispatchEvent(ev);
+  createPageHandler().then(() => {});
   // const rand = (Math.random() * 10);
   // console.log(rand);
   // const prog = document.querySelector("progress-bar");
