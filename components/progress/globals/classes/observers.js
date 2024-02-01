@@ -196,7 +196,7 @@ class EventObserver {
       resolve(methodName);
     });
   }
-  componentStepValueChange([methodName, target, ...data]) {
+  componentStepValueChange(methodName, target) {
     //maybe instead of actually adding steps, we just put a pause flag on progress for the amount of steps, then resume after removing the flag
     //that way the user doesn't feel like theyre going backwards
     return new Promise((resolve, reject) => {
