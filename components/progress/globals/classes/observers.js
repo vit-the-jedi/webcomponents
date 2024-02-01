@@ -2,12 +2,20 @@
 
 class StateObserver {
   update(data, target) {
-    target.log(data);
     if (data.activeStep === data.maxValue && this.configs?.removeOnComplete) {
       target.unmountComponent();
     } else {
-      //returns the largest of two numbers, either the new stepsRemaining value, or 0
-      target._progressState.stepsRemaining = Math.max(data.stepsRemaining - 1, 0);
+      //check if we are paused, if yes let's decrease the pause number by 1
+      if (target.getProgressState?.pause && target.getProgressState.pause !== 0) {
+        //returns the largest of two numbers, either the new stepsRemaining value, or 0
+        target.getProgressState.pause = Math.max(target.getProgressState.pause - 1, 0);
+        console.log(target.getProgressState.pause);
+      } else {
+        //delete the pause key once we have finished pausing progress
+        delete target.getProgressState.pause;
+        //update steps remaining
+        target._progressState.stepsRemaining = Math.max(data.stepsRemaining - 1, 0);
+      }
       target.updateComponent(Math.ceil(data.activeStep));
     }
   }
@@ -94,12 +102,16 @@ class EventObserver {
     eventsToAdd.forEach((ev) => {
       let index;
       if (ev === "componentStepValueChange") {
-        index = this.createQueue.indexOf(this["componentBeforeCreate"]) + 1;
+        index = this.createQueue.indexOf(this["componentBeforeCreate"]);
       } else {
         index = index = this.createQueue.indexOf(this["componentMounted"]);
       }
       this.createQueue.splice(index, 0, this[ev]);
     });
+  }
+  removeItemFromEventLoop(name) {
+    this.createQueue.splice(this.createQueue.indexOf(this[name]), 1);
+    console.log(this.createQueue);
   }
   // eventWrapper(cb, [fnToAdd, progressElement, previousFn, ...args]) {
   //   return new Promise((resolve, reject) => {
@@ -224,6 +236,7 @@ class EventObserver {
       }
       if (this.getEventListeners[methodName].data.once) {
         delete this.getEventListeners[methodName];
+        this.removeItemFromEventLoop(methodName);
       }
       resolve(methodName);
     });

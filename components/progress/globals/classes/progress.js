@@ -141,26 +141,16 @@ class Progress extends HTMLElement {
    *
    * */
   setActiveStepInState() {
-    //the following logic is an 11pm solution to steps being added to the flow
-    //instead of reducing progress, we simply stall it for a few steps, then resume
-    //im sure there's a better way to do this using the built-in hooks, but that's for tomorrow.
-    const newPauseValue = Math.max(this._progressState.pause - 1, 0);
+    //don't change active step if we are paused
+    if (this.getProgressState?.pause && this.getProgressState?.pause !== 0) {
+      return;
+    }
     let newActiveStep;
-    if (this._progressState.pause) {
-      newPauseValue === 0 ? 0 : newPauseValue;
-      this._progressState.pause = newPauseValue;
-      if (newPauseValue === 0) {
-        delete this._progressState.pause;
-      }
-    }
-    //end of hacky logic
-    else {
-      newActiveStep =
-        this._progressState.activeStep + this._progressState.stepIncrement > this._progressState.maxValue
-          ? this._progressState.maxValue
-          : this._progressState.activeStep + this._progressState.stepIncrement;
-      this._progressState.activeStep = newActiveStep;
-    }
+    newActiveStep =
+      this._progressState.activeStep + this._progressState.stepIncrement > this._progressState.maxValue
+        ? this._progressState.maxValue
+        : this._progressState.activeStep + this._progressState.stepIncrement;
+    this._progressState.activeStep = newActiveStep;
   }
   updateComponent(activeStep) {
     this._progressState.percentcomplete = activeStep;

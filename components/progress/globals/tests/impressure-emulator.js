@@ -3,7 +3,7 @@
 let clickCount = 0;
 const ev = new Event("componentStepValueChange");
 ev.data = {
-  addedSteps: 2,
+  addedSteps: 8,
   once: true,
 };
 
@@ -80,7 +80,21 @@ const createPageHandler = () => {
 const progressBtn = document.getElementById("bar");
 progressBtn.addEventListener("click", async function () {
   clickCount++;
-  document.dispatchEvent(ev);
+  if (clickCount === 1) {
+    ev.data = {
+      addedSteps: 8,
+      once: true,
+    };
+    document.dispatchEvent(ev);
+  }
+  // else if (clickCount === 3) {
+  //   ev.data = {
+  //     addedSteps: 1,
+  //     once: true,
+  //   };
+  //   document.dispatchEvent(ev);
+  // }
+
   createPageHandler().then(() => {});
   // const rand = (Math.random() * 10);
   // console.log(rand);
