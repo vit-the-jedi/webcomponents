@@ -141,16 +141,19 @@ class Progress extends HTMLElement {
    *
    * */
   setActiveStepInState() {
-    //don't change active step if we are paused
-    if (this.getProgressState?.pause && this.getProgressState?.pause !== 0) {
-      return;
-    }
     let newActiveStep;
-    newActiveStep =
-      this._progressState.activeStep + this._progressState.stepIncrement > this._progressState.maxValue
-        ? this._progressState.maxValue
-        : this._progressState.activeStep + this._progressState.stepIncrement;
-    this._progressState.activeStep = newActiveStep;
+    const state = this.getProgressState;
+    //don't change active step if we are paused
+    //add small increment to progress instead of nothing
+    if (state?.pause && state?.pause !== 0) {
+      newActiveStep = Number((state.activeStep + state.stepIncrement / state.stepChange).toFixed(2));
+    } else {
+      newActiveStep =
+        state.activeStep + state.stepIncrement > state.maxValue
+          ? state.maxValue
+          : state.activeStep + state.stepIncrement;
+    }
+    state.activeStep = newActiveStep;
   }
   updateComponent(activeStep) {
     this._progressState.percentcomplete = activeStep;

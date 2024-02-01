@@ -2,19 +2,25 @@
 
 class StateObserver {
   update(data, target) {
+    const progressState = target.getProgressState;
     if (data.activeStep === data.maxValue && this.configs?.removeOnComplete) {
       target.unmountComponent();
     } else {
       //check if we are paused, if yes let's decrease the pause number by 1
-      if (target.getProgressState?.pause && target.getProgressState.pause !== 0) {
+      if (progressState?.pause && progressState.pause !== 0) {
         //returns the largest of two numbers, either the new stepsRemaining value, or 0
-        target.getProgressState.pause = Math.max(target.getProgressState.pause - 1, 0);
-        console.log(target.getProgressState.pause);
+        progressState.pause = Math.max(progressState.pause - 1, 0);
+        console.log(progressState.pause);
+        if (progressState.pause === 1) {
+          //update steps remaining here, need to get back in line with actual flow progress
+          progressState.stepsRemaining = Math.max(data.stepsRemaining - 1, 0);
+        }
       } else {
         //delete the pause key once we have finished pausing progress
-        delete target.getProgressState.pause;
+        delete progressState.pause;
+        delete progressState.stepChange;
         //update steps remaining
-        target._progressState.stepsRemaining = Math.max(data.stepsRemaining - 1, 0);
+        progressState.stepsRemaining = Math.max(data.stepsRemaining - 1, 0);
       }
       target.updateComponent(Math.ceil(data.activeStep));
     }
@@ -215,24 +221,27 @@ class EventObserver {
       const data = this.eventListeners["componentStepValueChange"].data;
       target.log("step value update received");
       let newStepAmount;
+      const progressState = target.getProgressState;
+      const stepChange = data.addedSteps ? data.addedSteps : data.removedSteps * -1;
       if (data.removedSteps) {
-        newStepAmount = Math.max(target._progressState.stepsRemaining + 1 + stepChange, 0);
+        newStepAmount = Math.max(progressState.stepsRemaining + 1 + stepChange, 0);
         if (newStepAmount === 0) {
-          target._progressState.stepsRemaining = 0;
-          target._progressState.stepIncrementt = target._progressState.maxValue / target._progressState.numOfSteps;
-          target._progressState.activeStep = target._progressState.maxValue;
-          target._progressState.percentcomplete = target._progressState.maxValue;
+          progressState.stepsRemaining = 0;
+          progressState.stepIncrementt = progressState.maxValue / progressState.numOfSteps;
+          progressState.activeStep = progressState.maxValue;
+          progressState.percentcomplete = progressState.maxValue;
         } else {
-          target._progressState.numOfSteps = newStepAmount;
-          target._progressState.stepsRemaining = newStepAmount;
-          target._progressState.stepIncrement = target._progressState.maxValue / newStepAmount;
-          target._progressState.activeStep =
-            target._progressState.maxValue - target._progressState.stepsRemaining * target._progressState.stepIncrement;
-          target._progressState.percentcomplete = target._progressState.activeStep;
+          progressState.numOfSteps = newStepAmount;
+          progressState.stepsRemaining = newStepAmount;
+          progressState.stepIncrement = progressState.maxValue / newStepAmount;
+          progressState.activeStep =
+            progressState.maxValue - progressState.stepsRemaining * progressState.stepIncrement;
+          progressState.percentcomplete = progressState.activeStep;
         }
       } else {
         //lazy man's workaround for lack of better logic for pausing step updates
-        target._progressState.pause = data.addedSteps + 1;
+        progressState.pause = data.addedSteps + 1;
+        progressState.stepChange = data.addedSteps ? data.addedSteps : data.removedSteps;
       }
       if (this.getEventListeners[methodName].data.once) {
         delete this.getEventListeners[methodName];

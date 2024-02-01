@@ -82,7 +82,7 @@ progressBtn.addEventListener("click", async function () {
   clickCount++;
   if (clickCount === 1) {
     ev.data = {
-      addedSteps: 8,
+      addedSteps: 2,
       once: true,
     };
     document.dispatchEvent(ev);
