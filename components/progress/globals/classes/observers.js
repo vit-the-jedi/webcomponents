@@ -3,6 +3,7 @@
 class StateObserver {
   update(data, target) {
     const progressState = target.getProgressState;
+    //if we are at the end of the flow and we want to remove when completed, unmount the component
     if (data.activeStep === data.maxValue && this.configs?.removeOnComplete) {
       target.unmountComponent();
     } else {
@@ -10,17 +11,16 @@ class StateObserver {
       if (progressState?.pause && progressState.pause !== 0) {
         //returns the largest of two numbers, either the new stepsRemaining value, or 0
         progressState.pause = Math.max(progressState.pause - 1, 0);
-        console.log(progressState.pause);
         if (progressState.pause === 1) {
-          //update steps remaining here, need to get back in line with actual flow progress
-          progressState.stepsRemaining = Math.max(data.stepsRemaining - 1, 0);
+          //continue decreasing steps remaining at this point in the pause cycle
+          target.setStepsRemainingInState();
         }
       } else {
         //delete the pause key once we have finished pausing progress
-        delete progressState.pause;
-        delete progressState.stepChange;
+        target.removeKeysFromState(["pause", "stepChange"]);
+
         //update steps remaining
-        progressState.stepsRemaining = Math.max(data.stepsRemaining - 1, 0);
+        target.setStepsRemainingInState();
       }
       target.updateComponent(Math.ceil(data.activeStep));
     }
@@ -45,7 +45,6 @@ class EventObserver {
     const listeners = this.eventListeners;
     if (!sessionStorage.getItem("component__custom-events-added")) {
       document.addEventListener("componentStepValueChange", function (e) {
-        console.log("got it");
         listeners[e.type] = {
           data: e?.data,
         };
@@ -66,7 +65,6 @@ class EventObserver {
     this.addEventToQueue("create", "componentMounted", target);
 
     if (uniqueEvents) this.interceptEventLoop(uniqueEvents);
-    console.log(this.createQueue);
   }
   createComponentDestructionEventLoop(target) {
     this.queue["destroy"] = [];
@@ -87,13 +85,12 @@ class EventObserver {
     }
     if (typeof thisProto[name] !== "function") {
       throw new Error(
-        `You must specify a method that is a function, and exists on this handler. "${name}" is not a valid event handler.`
+        `You must specify a method that is a function, and exists on this observer. "${name}" is not a valid event handler.`
       );
     }
     return true;
   }
   addEventToQueue(type, eventName) {
-    //target._listeners[eventName] = true;
     let isValidEventMethod;
     try {
       isValidEventMethod = this.validateEvent(type, eventName);
@@ -119,23 +116,6 @@ class EventObserver {
     this.createQueue.splice(this.createQueue.indexOf(this[name]), 1);
     console.log(this.createQueue);
   }
-  // eventWrapper(cb, [fnToAdd, progressElement, previousFn, ...args]) {
-  //   return new Promise((resolve, reject) => {
-  //     this.checkForEvents().then((newEventsAdded) => {
-  //       console.log(newEventsAdded);
-  //       if (newEventsAdded) {
-  //         //do something with events that were added
-  //         this.interceptEventLoop(previousFn, "create", this["componentStepValueChange"]).then((updatedEventQueue) => {
-  //           console.log(updatedEventQueue);
-  //         });
-  //         const evKey = Object.keys(this.eventListeners)[0];
-  //         delete this.eventListeners[evKey];
-  //       }
-  //       console.log(this.createQueue);
-  //       cb(fnToAdd, progressElement, previousFn).then(() => resolve());
-  //     });
-  //   });
-  // }
   checkForEvents() {
     return new Promise((resolve, reject) => {
       if (Object.keys(this.eventListeners).length > 0) {

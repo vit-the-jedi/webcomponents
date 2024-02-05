@@ -27,8 +27,17 @@ class Progress extends HTMLElement {
   get getProgressState() {
     return this._progressState;
   }
+  set percentcomplete(value) {
+    this._progressState.percentcomplete = value;
+  }
   get percentcomplete() {
     return this._progressState.percentcomplete;
+  }
+  set setStepsRemaining(value) {
+    this._progressState.stepsRemaining = value;
+  }
+  get getStepsRemaining() {
+    return this._progressState.stepsRemaining;
   }
   set configs(configs) {
     this._configs = configs;
@@ -155,8 +164,12 @@ class Progress extends HTMLElement {
     }
     state.activeStep = newActiveStep;
   }
+  setStepsRemainingInState() {
+    //update steps remaining here, need to get back in line with actual flow progress
+    this.setStepsRemaining = Math.max(this.getStepsRemaining - 1, 0);
+  }
   updateComponent(activeStep) {
-    this._progressState.percentcomplete = activeStep;
+    this.percentcomplete = activeStep;
     this.setAttribute("percentcomplete", activeStep);
   }
   mountComponent() {
@@ -202,6 +215,11 @@ class Progress extends HTMLElement {
    */
   saveState() {
     sessionStorage.setItem("custom-component__state", JSON.stringify(this.getState()));
+  }
+  removeKeysFromState(keysArr) {
+    for (const key of keysArr) {
+      delete this.getProgressState[key];
+    }
   }
   createGlobalStyles() {
     const globalStyles = `
