@@ -215,9 +215,13 @@ class EventObserver {
       target.log("Component step value update");
       let newStepAmount;
       const progressState = target.getProgressState;
+      //create step change value, if we have added steps, use the value, else multiply the removedSteps by -1 to subtract from
+      //current amount of steps
       const stepChange = data.addedSteps ? data.addedSteps : data.removedSteps * -1;
       if (data.removedSteps) {
+        //get the max, either the new step amount is calculated, or 0 is returned if number is negative
         newStepAmount = Math.max(progressState.stepsRemaining + 1 + stepChange, 0);
+        //were at the end of progress
         if (newStepAmount === 0) {
           progressState.stepsRemaining = 0;
           progressState.stepIncrementt = progressState.maxValue / progressState.numOfSteps;
@@ -232,9 +236,9 @@ class EventObserver {
           progressState.percentcomplete = progressState.activeStep;
         }
       } else {
-        //lazy man's workaround for lack of better logic for pausing step updates
+        //pause logic - instead of moving the user backwards, we simply slow down / pause progress until the number of steps added is completed
         progressState.pause = data.addedSteps + 1;
-        progressState.stepChange = data.addedSteps ? data.addedSteps : data.removedSteps;
+        progressState.stepChange = stepChange;
       }
       if (this.getEventListeners[methodName].data.once) {
         delete this.getEventListeners[methodName];
