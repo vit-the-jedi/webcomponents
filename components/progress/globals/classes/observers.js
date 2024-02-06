@@ -154,7 +154,7 @@ class EventObserver {
   }
   componentBeforeCreate(methodName, target) {
     return new Promise((resolve, reject) => {
-      console.log("Component before create");
+      target.log("Component before create");
       if (target.componentType === "steps") {
         target._progressState.stepIncrement = 1;
         target.setActiveStepInState(1);
@@ -174,13 +174,13 @@ class EventObserver {
   }
   componentBeforeMount(methodName, target) {
     return new Promise((resolve, reject) => {
-      console.log("Component before mount");
+      target.log("Component before mount");
       resolve(methodName);
     });
   }
   componentMounted(methodName, target) {
     return new Promise((resolve, reject) => {
-      console.log("Component mounted");
+      target.log("Component mounted");
       window.top._customComponentProps = {};
       window.top._customComponentProps.element = target;
       window.top._customComponentProps.anchor = target.configs.anchorPoint;
@@ -196,14 +196,14 @@ class EventObserver {
   }
   componentBeforeUnmount(target) {
     return new Promise((resolve, reject) => {
-      console.log("Component before unmount");
+      target.log("Component before unmount");
       target.saveState();
       resolve(methodName);
     });
   }
   componentUnmounted(methodName, target) {
     return new Promise((resolve, reject) => {
-      console.log("Component unmounted");
+      target.log("Component unmounted");
       resolve(methodName);
     });
   }
@@ -212,7 +212,7 @@ class EventObserver {
     //that way the user doesn't feel like theyre going backwards
     return new Promise((resolve, reject) => {
       const data = this.eventListeners["componentStepValueChange"].data;
-      console.log("Component step value update");
+      target.log("Component step value update");
       let newStepAmount;
       const progressState = target.getProgressState;
       const stepChange = data.addedSteps ? data.addedSteps : data.removedSteps * -1;

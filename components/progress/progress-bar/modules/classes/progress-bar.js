@@ -98,7 +98,6 @@ export default class ProgressBar extends Progress {
         progressWrapper.appendChild(bar);
         shadow.appendChild(progressWrapper);
         this.shadow = shadow;
-        console.log("Component created");
         const progDiv = document.createElement("div");
         progDiv.classList.add("progress-container");
         this.setAttribute("data-max", "100");
