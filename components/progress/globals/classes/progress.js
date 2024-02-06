@@ -95,8 +95,8 @@ class Progress extends HTMLElement {
         additionalEvents.push(key);
       }
     }
-    eventObserver.createComponentCreationEventLoop(this, additionalEvents);
-    eventObserver.createComponentDestructionEventLoop(this);
+    eventObserver.createComponentCreationEventLoop(additionalEvents);
+    eventObserver.createComponentDestructionEventLoop();
     //detect impressure
     if (this.isImpressureEmbedded()) {
       this.impressurePageHistory = [];
@@ -122,18 +122,8 @@ class Progress extends HTMLElement {
         stepsRemaining: numOfSteps,
       };
     }
-    // eventObserver.checkForEvents().then((newEventsAdded) => {
-    //   console.log(newEventsAdded);
-    //   if (newEventsAdded) {
-    //     //do something with events that were added
-    //     this.interceptEventLoop(this[arg1], "create", this["componentStepValueChange"]).then((updatedEventQueue) => {
-    //       console.log(updatedEventQueue);
-    //     });
-    //     const evKey = Object.keys(this.eventListeners)[0];
-    //     delete this.eventListeners[evKey];
-    //   }
+    //run the create event queue
     eventObserver.dispatchEvents("create", this);
-    //});
   }
   setStepToList(stepIndex, step) {
     this._progressState.steps.set(stepIndex, step);

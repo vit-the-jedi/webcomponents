@@ -35,46 +35,55 @@ class EventObserver {
   set createQueue(data) {
     this.queue["create"] = data;
   }
-  get createQueue() {
+  get getCreateQueue() {
     return this.queue["create"];
   }
   get getEventListeners() {
     return this.eventListeners;
   }
+  //add new event listeners here
   initializeEventListeners() {
     const listeners = this.eventListeners;
     if (!sessionStorage.getItem("component__custom-events-added")) {
+      const eventObserver = this;
       document.addEventListener("componentStepValueChange", function (e) {
+        const evData = e?.data;
+        //get the inde of the splice target, must be the index of the item in the event loop
+        //that will directly follow your new event
+        //ex: want to insert into the beginning of the queue? Pass the index of the current first item.
+        evData.eventLoopTarget = eventObserver.getCreateQueue.indexOf(eventObserver["componentBeforeCreate"]);
         listeners[e.type] = {
-          data: e?.data,
+          data: evData,
         };
       });
       document.addEventListener("componentManualStepUpdate", function (e) {
+        const evData = e?.data;
+        evData.eventLoopTarget = eventObserver.getCreateQueue.indexOf(eventObserver["componentMounted"]);
         listeners[e.type] = {
-          data: e?.data,
+          data: evData,
         };
       });
     }
     sessionStorage.setItem("component__custom-events-added", true);
   }
-  createComponentCreationEventLoop(target, uniqueEvents = null) {
+  createComponentCreationEventLoop(uniqueEvents = null) {
     this.queue["create"] = [];
-    this.addEventToQueue("create", "componentBeforeCreate", target);
-    this.addEventToQueue("create", "componentCreated", target);
-    this.addEventToQueue("create", "componentBeforeMount", target);
-    this.addEventToQueue("create", "componentMounted", target);
+    this.addEventToQueue("create", "componentBeforeCreate");
+    this.addEventToQueue("create", "componentCreated");
+    this.addEventToQueue("create", "componentBeforeMount");
+    this.addEventToQueue("create", "componentMounted");
 
     if (uniqueEvents) this.interceptEventLoop(uniqueEvents);
   }
-  createComponentDestructionEventLoop(target) {
+  createComponentDestructionEventLoop() {
     this.queue["destroy"] = [];
-    this.addEventToQueue("destroy", "componentBeforeUnmount", target);
-    this.addEventToQueue("destroy", "componentUnmounted", target);
+    this.addEventToQueue("destroy", "componentBeforeUnmount");
+    this.addEventToQueue("destroy", "componentUnmounted");
   }
   validateEvent(type, name) {
     const thisProto = Object.getPrototypeOf(this);
-    if (this.createQueue.length > 1) {
-      const functionAlreadyInQueue = this.createQueue.filter((item) => {
+    if (this.getCreateQueue.length > 1) {
+      const functionAlreadyInQueue = this.getCreateQueue.filter((item) => {
         if (item.name === name) {
           return item;
         }
@@ -84,37 +93,41 @@ class EventObserver {
       }
     }
     if (typeof thisProto[name] !== "function") {
-      throw new Error(
-        `You must specify a method that is a function, and exists on this observer. "${name}" is not a valid event handler.`
-      );
+      const methodNotFoundError = new Error();
+      methodNotFoundError.name = "MethodNotFound";
+      methodNotFoundError.message = `You must specify a method that is a function, and exists on this observer. Make sure "${name}" is an event handler method on this observer.`;
+      throw methodNotFoundError;
     }
     return true;
   }
-  addEventToQueue(type, eventName) {
+  addEventToQueue(type, eventName, index = null) {
     let isValidEventMethod;
+    //ensure that this event is valid before adding to queue
     try {
       isValidEventMethod = this.validateEvent(type, eventName);
     } catch (e) {
       console.error(e);
     }
     if (isValidEventMethod) {
-      this.queue[type].push(this[eventName]);
+      //if we are passed an index, we can assume we want to splice in place inside the queue
+      //need to check index type here because if index === 0, if (0) will return false
+      //since null !== typeof number, we can use this instead
+      if (typeof index === "number") {
+        this.queue[type].splice(index, 0, this[eventName]);
+      } else {
+        //else just push into the array
+        this.queue[type].push(this[eventName]);
+      }
     }
   }
   interceptEventLoop(eventsToAdd) {
     eventsToAdd.forEach((ev) => {
-      let index;
-      if (ev === "componentStepValueChange") {
-        index = this.createQueue.indexOf(this["componentBeforeCreate"]);
-      } else {
-        index = index = this.createQueue.indexOf(this["componentMounted"]);
-      }
-      this.createQueue.splice(index, 0, this[ev]);
+      const interceptIndex = this.getEventListeners[ev].data.eventLoopTarget;
+      this.addEventToQueue("create", ev, interceptIndex);
     });
   }
   removeItemFromEventLoop(name) {
-    this.createQueue.splice(this.createQueue.indexOf(this[name]), 1);
-    console.log(this.createQueue);
+    this.getCreateQueue.splice(this.getCreateQueue.indexOf(this[name]), 1);
   }
   checkForEvents() {
     return new Promise((resolve, reject) => {
@@ -127,7 +140,7 @@ class EventObserver {
   }
   dispatchEvents(type, target) {
     //use reducer to queue promises
-    this.createQueue.reduce(
+    this.getCreateQueue.reduce(
       async (previousPromise, item) => {
         //wait for the promise that is called first;
         await previousPromise;
@@ -199,7 +212,7 @@ class EventObserver {
     //that way the user doesn't feel like theyre going backwards
     return new Promise((resolve, reject) => {
       const data = this.eventListeners["componentStepValueChange"].data;
-      target.log("step value update received");
+      console.log("Component step value update");
       let newStepAmount;
       const progressState = target.getProgressState;
       const stepChange = data.addedSteps ? data.addedSteps : data.removedSteps * -1;
