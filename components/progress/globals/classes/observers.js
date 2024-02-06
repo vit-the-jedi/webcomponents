@@ -47,14 +47,24 @@ class EventObserver {
     if (!sessionStorage.getItem("component__custom-events-added")) {
       const eventObserver = this;
       document.addEventListener("componentStepValueChange", function (e) {
-        const evData = e?.data;
-        //get the inde of the splice target, must be the index of the item in the event loop
-        //that will directly follow your new event
-        //ex: want to insert into the beginning of the queue? Pass the index of the current first item.
-        evData.eventLoopTarget = eventObserver.getCreateQueue.indexOf(eventObserver["componentBeforeCreate"]);
-        listeners[e.type] = {
-          data: evData,
-        };
+        try {
+          const evData = e?.data;
+          if (!evData) {
+            const noEventDataError = new Error();
+            noEventDataError.name = "MissingEventData";
+            noEventDataError.message = `Missing critical data for ${e.type}. Go back to where you have dispatched this event from, and be sure to add a data object to the event.`;
+          } else {
+            //get the inde of the splice target, must be the index of the item in the event loop
+            //that will directly follow your new event
+            //ex: want to insert into the beginning of the queue? Pass the index of the current first item.
+            evData.eventLoopTarget = eventObserver.getCreateQueue.indexOf(eventObserver["componentBeforeCreate"]);
+            listeners[e.type] = {
+              data: evData,
+            };
+          }
+        } catch (e) {
+          console.error(e);
+        }
       });
       document.addEventListener("componentManualStepUpdate", function (e) {
         const evData = e?.data;
