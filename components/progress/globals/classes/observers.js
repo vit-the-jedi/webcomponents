@@ -53,6 +53,7 @@ class EventObserver {
             const noEventDataError = new Error();
             noEventDataError.name = "MissingEventData";
             noEventDataError.message = `Missing critical data for ${e.type}. Go back to where you have dispatched this event from, and be sure to add a data object to the event.`;
+            throw noEventDataError;
           } else {
             //get the inde of the splice target, must be the index of the item in the event loop
             //that will directly follow your new event
