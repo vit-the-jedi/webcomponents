@@ -61,17 +61,18 @@ const createPageHandler = () => {
       transitionDuration: 250,
       anchorPoint: ".formheader",
       height: 12,
-      steps: 7,
+      steps: 3,
       max: 100,
-      stepLabels: {
-        1: "Start",
-        2: "Vehicle Details",
-        3: "Driver Details",
-        4: "Compare Quotes",
-      },
-      optionalEvents: ["componentManualProgressStepUpdate"],
-      manualUpdate: true,
+      // stepLabels: {
+      //   1: "Start",
+      //   2: "Vehicle Details",
+      //   3: "Driver Details",
+      //   4: "Compare Quotes",
+      // },
+      //optionalEvents: ["componentManualProgressStepUpdate"],
+      //manualUpdate: true,
       _devMode: true,
+      removeOnComplete: true,
     });
     resolve();
   });
@@ -85,7 +86,7 @@ progressBtn.addEventListener("click", async function () {
       addedSteps: 2,
       once: true,
     };
-    document.dispatchEvent(ev);
+    //document.dispatchEvent(ev);
   }
   // else if (clickCount === 3) {
   //   ev.data = {

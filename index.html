@@ -20,10 +20,7 @@
     <div class="survey">
       <div class="page">
         <div class="container-fluid">
-          <div
-            class="logo"
-            style="height: 55px; background: blue; margin-bottom: 20px"
-          ></div>
+          <div class="logo" style="height: 55px; background: blue; margin-bottom: 20px"></div>
           <div class="formheader" style="background: purple">
             <h1>Hello</h1>
           </div>
@@ -37,11 +34,7 @@
       <!-- <progress-bar data-max="100" data-steps="16"></progress-bar> -->
       <button id="bar">CLICK TO UPDATE PROGRESS BAR</button>
       <!-- <script type="module" id="progress-step-entry" src="components/progress/progress-step/init.js"></script> -->
-      <script
-        type="module"
-        id="progress-bar-entry"
-        src="/components/progress/progress-bar/init-bar.js"
-      ></script>
+      <script type="module" id="progress-bar-entry" src="/components/progress/progress-bar/init-bar.js"></script>
       <script src="components/progress/globals/tests/impressure-emulator.js"></script>
       <iframe id="hello"></iframe>
       <!-- <script>
@@ -70,17 +63,18 @@
             transitionDuration: 250,
             anchorPoint: ".formheader",
             height: 12,
-            steps: 7,
+            steps: 3,
             max: 100,
-            stepLabels: {
-              1: "Start",
-              2: "Vehicle Details",
-              3: "Driver Details",
-              4: "Compare Quotes",
-            },
-            optionalEvents: ["componentManualProgressStepUpdate"],
-            manualUpdate: true,
+            // stepLabels: {
+            //   1: "Start",
+            //   2: "Vehicle Details",
+            //   3: "Driver Details",
+            //   4: "Compare Quotes",
+            // },
+            //optionalEvents: ["componentManualProgressStepUpdate"],
+            //manualUpdate: true,
             _devMode: true,
+            removeOnComplete: true,
           });
         }, 500);
       </script>
