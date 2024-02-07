@@ -190,9 +190,8 @@ class EventObserver {
           );
           //empty out the queue and stop lifecycle
           this.queue["create"] = [];
-          //add flag to the window so we can stop adding component
-          window.top._customComponentProps = {};
-          window.top._customComponentProps.done = true;
+          //add flag to state so we can stop adding component
+          sessionStorage.setItem("custom-component_done", true);
         } else {
           target.notifyStateUpdate(target._progressState);
           resolve(methodName);

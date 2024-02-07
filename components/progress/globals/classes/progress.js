@@ -79,8 +79,23 @@ class Progress extends HTMLElement {
       console.log(msg);
     }
   }
+  startPageChangeListener = (el) => {
+    const mutationObserverCallback = (mutations, observer) => {
+      for (const mutation of mutations) {
+        if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].classList.contains("page")) {
+          const pageId = mutation.addedNodes[0].id.slice(2);
+          if (!Impressure.context.getState().pages[pageId].name.toLowerCase().includes("integration")) {
+            window.initProgressComponent(this.configs);
+            break;
+          }
+        }
+      }
+    };
+    const observer = new MutationObserver(mutationObserverCallback);
+    observer.observe(document.querySelector(".survey"), { childList: true });
+  };
   isImpressureEmbedded() {
-    return window.top.Impressure;
+    return window.top.Impressure ? true : false;
   }
   pushImpressurePageId() {}
   /**
@@ -102,6 +117,7 @@ class Progress extends HTMLElement {
     this.configs = configs;
     const savedState = JSON.parse(sessionStorage.getItem("custom-component__state"));
     if (savedState) {
+      if (savedState.done) return;
       //do stuff with state
       this.setProgressState = savedState._progressState;
       this.configs = savedState._configs;
@@ -123,6 +139,9 @@ class Progress extends HTMLElement {
     eventObserver.createComponentCreationEventLoop(additionalEvents);
     //run the create event queue
     eventObserver.dispatchEvents("create", this);
+    if (this.isImpressureEmbedded()) {
+      this.startPageChangeListener();
+    }
   }
   setStepToList(stepIndex, step) {
     this._progressState.steps.set(stepIndex, step);
