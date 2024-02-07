@@ -5,6 +5,7 @@ class StateObserver {
     const progressState = target.getProgressState;
     //if we are at the end of the flow and we want to remove when completed, unmount the component
     if (data.activeStep === data.maxValue && this.configs?.removeOnComplete) {
+      target.deleteState();
       target.unmountComponent();
     } else {
       //check if we are paused, if yes let's decrease the pause number by 1

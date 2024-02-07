@@ -206,6 +206,9 @@ class Progress extends HTMLElement {
   saveState() {
     sessionStorage.setItem("custom-component__state", JSON.stringify(this.getState()));
   }
+  deleteState() {
+    sessionStorage.removeItem("custom-component__state");
+  }
   removeKeysFromState(keysArr) {
     for (const key of keysArr) {
       delete this.getProgressState[key];
