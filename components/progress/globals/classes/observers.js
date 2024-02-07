@@ -3,27 +3,22 @@
 class StateObserver {
   update(data, target) {
     const progressState = target.getProgressState;
-    //if we are at the end of the flow and we want to remove when completed, unmount the component
-    if (data.activeStep === data.maxValue && this.configs?.removeOnComplete) {
-      target.unmountComponent();
-    } else {
-      //check if we are paused, if yes let's decrease the pause number by 1
-      if (progressState?.pause && progressState.pause !== 0) {
-        //returns the largest of two numbers, either the new stepsRemaining value, or 0
-        progressState.pause = Math.max(progressState.pause - 1, 0);
-        if (progressState.pause === 1) {
-          //continue decreasing steps remaining at this point in the pause cycle
-          target.setStepsRemainingInState();
-        }
-      } else {
-        //delete the pause key once we have finished pausing progress
-        target.removeKeysFromState(["pause", "stepChange"]);
-
-        //update steps remaining
+    //check if we are paused, if yes let's decrease the pause number by 1
+    if (progressState?.pause && progressState.pause !== 0) {
+      //returns the largest of two numbers, either the new stepsRemaining value, or 0
+      progressState.pause = Math.max(progressState.pause - 1, 0);
+      if (progressState.pause === 1) {
+        //continue decreasing steps remaining at this point in the pause cycle
         target.setStepsRemainingInState();
       }
-      target.updateComponent(Math.ceil(data.activeStep));
+    } else {
+      //delete the pause key once we have finished pausing progress
+      target.removeKeysFromState(["pause", "stepChange"]);
+
+      //update steps remaining
+      target.setStepsRemainingInState();
     }
+    target.updateComponent(Math.ceil(data.activeStep));
   }
 }
 class EventObserver {
@@ -149,15 +144,25 @@ class EventObserver {
       }
     });
   }
+  eventWrapper(fn, name, tar) {
+    return new Promise((resolve, reject) => {
+      try {
+        fn(name, tar).then((resp) => {
+          resolve(resp);
+        });
+      } catch (e) {
+        resolve(e);
+      }
+    });
+  }
   dispatchEvents(type, target) {
     //use reducer to queue promises
-    this.getCreateQueue.reduce(
+    this.queue[type]?.reduce(
       async (previousPromise, item) => {
         //wait for the promise that is called first;
         await previousPromise;
         const boundPromise = item.bind(this);
-        //return this.eventWrapper(boundPromise, [item.name, target, previousPromise]);
-        return boundPromise(item.name, target);
+        return this.eventWrapper(boundPromise, item.name, target);
       },
       //accumulator is initially an empty promise (resolves to undefined but we don't care)
       Promise.resolve()
@@ -178,8 +183,19 @@ class EventObserver {
   componentCreated(methodName, target) {
     return new Promise(async (resolve, reject) => {
       await target.createComponent().then((el) => {
-        target.notifyStateUpdate(target._progressState);
-        resolve(methodName);
+        if (target.checkIfComplete()) {
+          target.unmountComponent();
+          target.log(
+            "Component lifecycle cancelled. This is a manual action, most likely because configs.removeOnComplete is set to true."
+          );
+          //empty out the queue and stop lifecycle
+          this.queue["create"] = [];
+          //add flag to state so we can stop adding component
+          sessionStorage.setItem("custom-component_done", true);
+        } else {
+          target.notifyStateUpdate(target._progressState);
+          resolve(methodName);
+        }
       });
     });
   }
@@ -195,7 +211,6 @@ class EventObserver {
       window.top._customComponentProps = {};
       window.top._customComponentProps.element = target;
       window.top._customComponentProps.anchor = target.configs.anchorPoint;
-
       //anchor the target to the anchorPoint provided
       target.getComponentAnchorPoint().then(() => {
         target.mountComponent().then(() => {
@@ -203,19 +218,6 @@ class EventObserver {
           resolve(methodName);
         });
       });
-    });
-  }
-  componentBeforeUnmount(target) {
-    return new Promise((resolve, reject) => {
-      target.log("Component before unmount");
-      target.saveState();
-      resolve(methodName);
-    });
-  }
-  componentUnmounted(methodName, target) {
-    return new Promise((resolve, reject) => {
-      target.log("Component unmounted");
-      resolve(methodName);
     });
   }
   componentStepValueChange(methodName, target) {

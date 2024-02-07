@@ -1,1 +1,1 @@
-import"./progress.js";import{P as e}from"./progress-bar.js";import"./observers.js";const r=o=>{new e().initState(o)};window.__customProgressStepMethods={};window.initProgressComponent=r;
+import"./progress.js";import{P as e}from"./progress-bar.js";import"./observers.js";const t=o=>{if(sessionStorage.getItem("custom-component_done"))return;new e().initState(o)};window.__customProgressStepMethods={};window.initProgressComponent=t;

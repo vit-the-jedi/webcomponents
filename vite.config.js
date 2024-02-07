@@ -28,7 +28,7 @@ let inputFileArr = await walk("./components/progress/");
 
 export default defineConfig({
   build: {
-    minify: true,
+    // minify: true,
     outDir: "./dist",
     rollupOptions: {
       input: inputFileArr,
