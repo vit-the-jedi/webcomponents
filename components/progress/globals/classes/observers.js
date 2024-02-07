@@ -39,7 +39,7 @@ class EventObserver {
   //add new event listeners here
   initializeEventListeners() {
     const listeners = this.eventListeners;
-    if (!sessionStorage.getItem("component__custom-events-added")) {
+    if (!sessionStorage.getItem("custom-component__eventsRegistered")) {
       const eventObserver = this;
       document.addEventListener("componentStepValueChange", function (e) {
         try {
@@ -70,7 +70,7 @@ class EventObserver {
         };
       });
     }
-    sessionStorage.setItem("component__custom-events-added", true);
+    sessionStorage.setItem("custom-component__eventsRegistered", true);
   }
   createComponentCreationEventLoop(uniqueEvents = null) {
     this.queue["create"] = [];
@@ -191,7 +191,7 @@ class EventObserver {
           //empty out the queue and stop lifecycle
           this.queue["create"] = [];
           //add flag to state so we can stop adding component
-          sessionStorage.setItem("custom-component_done", true);
+          sessionStorage.setItem("custom-component__done", true);
         } else {
           target.notifyStateUpdate(target._progressState);
           resolve(methodName);

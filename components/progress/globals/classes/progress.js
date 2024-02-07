@@ -80,19 +80,22 @@ class Progress extends HTMLElement {
     }
   }
   startPageChangeListener = (el) => {
-    const mutationObserverCallback = (mutations, observer) => {
-      for (const mutation of mutations) {
-        if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].classList.contains("page")) {
-          const pageId = mutation.addedNodes[0].id.slice(2);
-          if (!Impressure.context.getState().pages[pageId].name.toLowerCase().includes("integration")) {
-            window.initProgressComponent(this.configs);
-            break;
+    if (!this.getProgressState.pageObserverAdded) {
+      const mutationObserverCallback = (mutations, observer) => {
+        for (const mutation of mutations) {
+          if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].classList.contains("page")) {
+            const pageId = mutation.addedNodes[0].id.slice(2);
+            if (!Impressure.context.getState().pages[pageId].name.toLowerCase().includes("integration")) {
+              window.initProgressComponent(this.configs);
+              break;
+            }
           }
         }
-      }
-    };
-    const observer = new MutationObserver(mutationObserverCallback);
-    observer.observe(document.querySelector(".survey"), { childList: true });
+      };
+      const observer = new MutationObserver(mutationObserverCallback);
+      observer.observe(document.querySelector(".survey"), { childList: true });
+      this.getProgressState.pageObserverAdded = true;
+    }
   };
   isImpressureEmbedded() {
     return window.top.Impressure ? true : false;
@@ -117,7 +120,6 @@ class Progress extends HTMLElement {
     this.configs = configs;
     const savedState = JSON.parse(sessionStorage.getItem("custom-component__state"));
     if (savedState) {
-      if (savedState.done) return;
       //do stuff with state
       this.setProgressState = savedState._progressState;
       this.configs = savedState._configs;
