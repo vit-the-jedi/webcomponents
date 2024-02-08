@@ -214,12 +214,13 @@ class EventObserver {
       //anchor the target to the anchorPoint provided
       target.getComponentAnchorPoint().then(() => {
         target.mountComponent().then(() => {
-          target.saveState();
           //check if embedded in Impressure form and we haven't registered a page observer yet
           //this would occur after initial mount
-          if (target.isImpressureEmbedded() && !target.pageObserverAdded) {
+          if (target.isImpressureEmbedded() && !target.getProgressState.pageObserverAdded) {
             target.startPageChangeListener();
           }
+          //ensure saving state is the last step in this method before resolving
+          target.saveState();
           resolve(methodName);
         });
       });
