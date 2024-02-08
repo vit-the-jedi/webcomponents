@@ -141,9 +141,6 @@ class Progress extends HTMLElement {
     eventObserver.createComponentCreationEventLoop(additionalEvents);
     //run the create event queue
     eventObserver.dispatchEvents("create", this);
-    if (this.isImpressureEmbedded()) {
-      this.startPageChangeListener();
-    }
   }
   setStepToList(stepIndex, step) {
     this._progressState.steps.set(stepIndex, step);
