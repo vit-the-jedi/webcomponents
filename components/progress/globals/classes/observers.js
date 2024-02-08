@@ -215,6 +215,11 @@ class EventObserver {
       target.getComponentAnchorPoint().then(() => {
         target.mountComponent().then(() => {
           target.saveState();
+          //check if embedded in Impressure form and we haven't registered a page observer yet
+          //this would occur after initial mount
+          if (target.isImpressureEmbedded() && !target.pageObserverAdded) {
+            target.startPageChangeListener();
+          }
           resolve(methodName);
         });
       });
