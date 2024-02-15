@@ -18,6 +18,7 @@ class Progress extends HTMLElement {
     this._devMode = true;
     this.addObserver(new StateObserver(), "state");
     this.addObserver(eventObserver, "event");
+    this.initializeEventListeners();
   }
   set setProgressState(state) {
     this.log(`setting progress state`);
@@ -52,6 +53,43 @@ class Progress extends HTMLElement {
   set impressurePageId(id) {
     this.impressurePageHistory.push(id);
   }
+  //add new event listeners here
+  initializeEventListeners() {
+    const progressStateHandler = this;
+    if (!sessionStorage.getItem("custom-component__eventsRegistered")) {
+      document.addEventListener("componentStepValueChange", function (e) {
+        try {
+          const evData = e?.data;
+          if (!evData) {
+            const noEventDataError = new Error();
+            noEventDataError.name = "MissingEventData";
+            noEventDataError.message = `Missing critical data for ${e.type}. Go back to where you have dispatched this event from, and be sure to add a data object to the event.`;
+            throw noEventDataError;
+          } else {
+            //get the inde of the splice target, must be the index of the item in the event loop
+            //that will directly follow your new event
+            //ex: want to insert into the beginning of the queue? Pass the index of the current first item.
+            evData.eventLoopTarget = eventObserver.getCreateQueue.indexOf(eventObserver["componentBeforeCreate"]);
+            progressStateHandler.notifyEventUpdate({
+              name: e.type,
+              data: evData,
+            });
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      });
+      document.addEventListener("componentManualStepUpdate", function (e) {
+        const evData = e?.data;
+        evData.eventLoopTarget = eventObserver.getCreateQueue.indexOf(eventObserver["componentMounted"]);
+        progressStateHandler.notifyEventUpdate({
+          name: e.type,
+          data: evData,
+        });
+      });
+    }
+    sessionStorage.setItem("custom-component__eventsRegistered", true);
+  }
   /**
    * Observer methods
    */
@@ -70,6 +108,9 @@ class Progress extends HTMLElement {
   }
   notifyStateUpdate(data) {
     this.observers["state"].forEach(async (observer) => observer.update(data, this));
+  }
+  notifyEventUpdate(data) {
+    this.observers["event"].forEach(async (observer) => observer.update(data, this));
   }
   /**
    * method that logs messages to the console if configs._devMode is true
@@ -106,13 +147,6 @@ class Progress extends HTMLElement {
    *
    * */
   async initState(configs) {
-    let additionalEvents = null;
-    if (Object.keys(eventObserver.getEventListeners).length > 0) {
-      for (const key of Object.keys(eventObserver.getEventListeners)) {
-        additionalEvents = [];
-        additionalEvents.push(key);
-      }
-    }
     //detect impressure
     if (this.isImpressureEmbedded()) {
       this.impressurePageHistory = [];
@@ -138,7 +172,7 @@ class Progress extends HTMLElement {
         stepsRemaining: numOfSteps,
       };
     }
-    eventObserver.createComponentCreationEventLoop(additionalEvents);
+    eventObserver.createComponentCreationEventLoop();
     //run the create event queue
     eventObserver.dispatchEvents("create", this);
   }
