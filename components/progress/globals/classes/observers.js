@@ -24,8 +24,7 @@ class StateObserver {
 class EventObserver {
   constructor() {
     this.queue = [];
-    this.eventListeners = {};
-    this.initializeEventListeners();
+    this.eventListeners = [];
   }
   set createQueue(data) {
     this.queue["create"] = data;
@@ -33,44 +32,17 @@ class EventObserver {
   get getCreateQueue() {
     return this.queue["create"];
   }
-  get getEventListeners() {
+  set setEvent(ev) {
+    this.getEvents.push(ev);
+  }
+  set updateEventArray(arr) {
+    this.eventListeners = arr;
+  }
+  get getEvents() {
     return this.eventListeners;
   }
-  //add new event listeners here
-  initializeEventListeners() {
-    const listeners = this.eventListeners;
-    if (!sessionStorage.getItem("custom-component__eventsRegistered")) {
-      const eventObserver = this;
-      document.addEventListener("componentStepValueChange", function (e) {
-        try {
-          const evData = e?.data;
-          if (!evData) {
-            const noEventDataError = new Error();
-            noEventDataError.name = "MissingEventData";
-            noEventDataError.message = `Missing critical data for ${e.type}. Go back to where you have dispatched this event from, and be sure to add a data object to the event.`;
-            throw noEventDataError;
-          } else {
-            //get the inde of the splice target, must be the index of the item in the event loop
-            //that will directly follow your new event
-            //ex: want to insert into the beginning of the queue? Pass the index of the current first item.
-            evData.eventLoopTarget = eventObserver.getCreateQueue.indexOf(eventObserver["componentBeforeCreate"]);
-            listeners[e.type] = {
-              data: evData,
-            };
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      });
-      document.addEventListener("componentManualStepUpdate", function (e) {
-        const evData = e?.data;
-        evData.eventLoopTarget = eventObserver.getCreateQueue.indexOf(eventObserver["componentMounted"]);
-        listeners[e.type] = {
-          data: evData,
-        };
-      });
-    }
-    sessionStorage.setItem("custom-component__eventsRegistered", true);
+  update(evData) {
+    this.setEvent = evData;
   }
   createComponentCreationEventLoop(uniqueEvents = null) {
     this.queue["create"] = [];
@@ -79,7 +51,7 @@ class EventObserver {
     this.addEventToQueue("create", "componentBeforeMount");
     this.addEventToQueue("create", "componentMounted");
 
-    if (uniqueEvents) this.interceptEventLoop(uniqueEvents);
+    if (this.getEvents.length > 0) this.interceptEventLoop(this.getEvents);
   }
   createComponentDestructionEventLoop() {
     this.queue["destroy"] = [];
@@ -127,9 +99,9 @@ class EventObserver {
     }
   }
   interceptEventLoop(eventsToAdd) {
-    eventsToAdd.forEach((ev) => {
-      const interceptIndex = this.getEventListeners[ev].data.eventLoopTarget;
-      this.addEventToQueue("create", ev, interceptIndex);
+    eventsToAdd.forEach((ev, i, arr) => {
+      const interceptIndex = ev.data.eventLoopTarget;
+      this.addEventToQueue("create", ev.name, interceptIndex);
     });
   }
   removeItemFromEventLoop(name) {
@@ -230,14 +202,20 @@ class EventObserver {
     //maybe instead of actually adding steps, we just put a pause flag on progress for the amount of steps, then resume after removing the flag
     //that way the user doesn't feel like theyre going backwards
     return new Promise((resolve, reject) => {
-      const data = this.eventListeners["componentStepValueChange"].data;
+      const stepValueChangeEventData = this.getEvents.filter((evt) => {
+        if (evt.name === methodName) {
+          return evt;
+        }
+      })[0];
       target.log("Component step value update");
       let newStepAmount;
       const progressState = target.getProgressState;
       //create step change value, if we have added steps, use the value, else multiply the removedSteps by -1 to subtract from
       //current amount of steps
-      const stepChange = data.addedSteps ? data.addedSteps : data.removedSteps * -1;
-      if (data.removedSteps) {
+      const stepChange = stepValueChangeEventData.data.addedSteps
+        ? stepValueChangeEventData.data.addedSteps
+        : stepValueChangeEventData.data.removedSteps * -1;
+      if (stepValueChangeEventData.data.removedSteps) {
         //get the max, either the new step amount is calculated, or 0 is returned if number is negative
         newStepAmount = Math.max(progressState.stepsRemaining + 1 + stepChange, 0);
         //were at the end of progress
@@ -256,11 +234,11 @@ class EventObserver {
         }
       } else {
         //pause logic - instead of moving the user backwards, we simply slow down / pause progress until the number of steps added is completed
-        progressState.pause = data.addedSteps + 1;
+        progressState.pause = stepValueChangeEventData.data.addedSteps + 1;
         progressState.stepChange = stepChange;
       }
-      if (this.getEventListeners[methodName].data.once) {
-        delete this.getEventListeners[methodName];
+      if (stepValueChangeEventData.data.once) {
+        this.getEvents.splice(this.getEvents.indexOf(stepValueChangeEventData), 1);
         this.removeItemFromEventLoop(methodName);
       }
       resolve(methodName);

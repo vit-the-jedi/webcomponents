@@ -1,1 +1,1 @@
-import"./progress.js";import{P as e}from"./progress-circle.js";import"./observers.js";const i=t=>{let o=new e;o.init(t,o.initState.bind(o))};window.__customProgressStepMethods={};window.initProgressComponent=i;
+import{P as e}from"./progress-circle.js";import"./progress.js";import"./observers.js";const i=t=>{let o=new e;o.init(t,o.initState.bind(o))};window.__customProgressStepMethods={};window.initProgressComponent=i;
