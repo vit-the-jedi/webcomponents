@@ -121,13 +121,13 @@ class Progress extends HTMLElement {
     }
   }
   startPageChangeListener = (el) => {
-    if (!this.getProgressState.pageObserverAdded) {
+    if (!this.getProgressState.pageObserverAdded && this.isImpressureEmbedded()) {
       const mutationObserverCallback = (mutations, observer) => {
         for (const mutation of mutations) {
           if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].classList.contains("page")) {
             const pageId = mutation.addedNodes[0].id.slice(2);
-            if (!Impressure.context.getState().pages[pageId].name.toLowerCase().includes("integration")) {
-              window.initProgressComponent(this.configs);
+            if (this.currentPageIsValidImpressurePage(pageId)) {
+              window.initProgressComponent(this.configs, pageId);
               break;
             }
           }
@@ -141,16 +141,39 @@ class Progress extends HTMLElement {
   isImpressureEmbedded() {
     return window.top.Impressure ? true : false;
   }
-  pushImpressurePageId() {}
+  pushImpressureBlacklistedPageId(id) {
+    this._progressState.impressureBlacklistedPages = this._progressState.impressureBlacklistedPages || [];
+    this._progressState.impressureBlacklistedPages.push(id);
+  }
+  currentPageIsValidImpressurePage(pageId) {
+    const impressureCurrentState = Impressure.context.getState();
+    const pageName = impressureCurrentState.pages[pageId].name.toLowerCase();
+    const blacklistedPageNames = ["images", "integration", "prepop instructions"];
+
+    const invalidPage = blacklistedPageNames.filter((blacklistedName) => {
+      pageName.includes(blacklistedName);
+    });
+    if (invalidPage.length > 0) {
+      this.pushImpressureBlacklistedPageId(pageId);
+      return false;
+    }
+    return true;
+  }
+  detectImpressureBackwardsNavigation() {
+    const impressurePageHistoryTrail = Impressure.context.getState().navigation.pageHistoryTrail;
+    const currentPageId = Impressure.context.getState().navigation.currentPageId;
+    const currentPageIndexInTrail = impressurePageHistoryTrail.indexOf(currentPageId);
+    //if the current page Id isn't in the trail we haven't gotten to this page yet
+    if (currentPageIndexInTrail === -1 || currentPageIndexInTrail === impressurePageHistoryTrail.length - 1) {
+      return false;
+    }
+    return true;
+  }
   /**
    * method that initializes component during it's first mount. Sets defaults for first page load.
    *
    * */
-  async initState(configs) {
-    //detect impressure
-    if (this.isImpressureEmbedded()) {
-      this.impressurePageHistory = [];
-    }
+  async initState(configs, impressurePageId) {
     this.configs = configs;
     const savedState = JSON.parse(sessionStorage.getItem("custom-component__state"));
     if (savedState) {
@@ -172,6 +195,20 @@ class Progress extends HTMLElement {
         stepsRemaining: numOfSteps,
       };
     }
+    //test to see if we've already been on this page
+    if (this.detectImpressureBackwardsNavigation()) {
+      //emit pause event
+      this.log("backwards event detected.");
+      this.notifyEventUpdate({
+        name: "componentStepValueChange",
+        data: {
+          addedSteps: 1,
+          once: true,
+          eventLoopTarget: eventObserver.getCreateQueue.indexOf(eventObserver["componentBeforeCreate"]),
+        },
+      });
+    }
+    //create the create event queue
     eventObserver.createComponentCreationEventLoop();
     //run the create event queue
     eventObserver.dispatchEvents("create", this);
@@ -196,7 +233,9 @@ class Progress extends HTMLElement {
     //don't change active step if we are paused
     //add small increment to progress instead of nothing
     if (state?.pause && state?.pause !== 0) {
-      newActiveStep = Number((state.activeStep + state.stepIncrement / state.stepChange).toFixed(2));
+      newActiveStep = state.activeStep;
+      this.getProgressState.pause = Math.max(state.pause - 1, 0);
+      //newActiveStep = Number((state.activeStep + state.stepIncrement / state.stepChange).toFixed(2));
     } else {
       newActiveStep =
         state.activeStep + state.stepIncrement > state.maxValue

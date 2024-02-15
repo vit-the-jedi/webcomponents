@@ -4,14 +4,7 @@ class StateObserver {
   update(data, target) {
     const progressState = target.getProgressState;
     //check if we are paused, if yes let's decrease the pause number by 1
-    if (progressState?.pause && progressState.pause !== 0) {
-      //returns the largest of two numbers, either the new stepsRemaining value, or 0
-      progressState.pause = Math.max(progressState.pause - 1, 0);
-      if (progressState.pause === 1) {
-        //continue decreasing steps remaining at this point in the pause cycle
-        target.setStepsRemainingInState();
-      }
-    } else {
+    if (!progressState?.pause || progressState.pause === 0) {
       //delete the pause key once we have finished pausing progress
       target.removeKeysFromState(["pause", "stepChange"]);
 
@@ -166,6 +159,10 @@ class EventObserver {
           sessionStorage.setItem("custom-component__done", true);
         } else {
           target.notifyStateUpdate(target._progressState);
+          //returns the largest of two numbers, either the new stepsRemaining value, or 0
+          if (target.getProgressState.pause)
+            target.getProgressState.pause = Math.max(target.getProgressState.pause - 1, 0);
+
           resolve(methodName);
         }
       });
@@ -193,6 +190,8 @@ class EventObserver {
           }
           //ensure saving state is the last step in this method before resolving
           target.saveState();
+          target.log(`State when mounted:`);
+          target.log(target.getState());
           resolve(methodName);
         });
       });
