@@ -135,7 +135,7 @@ class EventObserver {
   }
   componentBeforeCreate(methodName, target) {
     return new Promise((resolve, reject) => {
-      target.log("Component before create");
+      target.log("LIFECYCLE: Component before create");
       if (target.componentType === "steps") {
         target._progressState.stepIncrement = 1;
         target.setActiveStepInState(1);
@@ -151,7 +151,7 @@ class EventObserver {
         if (target.checkIfComplete()) {
           target.unmountComponent();
           target.log(
-            "Component lifecycle cancelled. This is a manual action, most likely because configs.removeOnComplete is set to true."
+            "LIFECYCLE: Component lifecycle cancelled. This is a manual action, most likely because configs.removeOnComplete is set to true."
           );
           //empty out the queue and stop lifecycle
           this.queue["create"] = [];
@@ -170,13 +170,13 @@ class EventObserver {
   }
   componentBeforeMount(methodName, target) {
     return new Promise((resolve, reject) => {
-      target.log("Component before mount");
+      target.log("LIFECYCLE: Component before mount");
       resolve(methodName);
     });
   }
   componentMounted(methodName, target) {
     return new Promise((resolve, reject) => {
-      target.log("Component mounted");
+      target.log("LIFECYCLE: Component mounted");
       window.top._customComponentProps = {};
       window.top._customComponentProps.element = target;
       window.top._customComponentProps.anchor = target.configs.anchorPoint;
@@ -190,7 +190,7 @@ class EventObserver {
           }
           //ensure saving state is the last step in this method before resolving
           target.saveState();
-          target.log(`State when mounted:`);
+          target.log(`LIFECYCLE: State when mounted:`);
           target.log(target.getState());
           resolve(methodName);
         });
@@ -206,7 +206,7 @@ class EventObserver {
           return evt;
         }
       })[0];
-      target.log("Component step value update");
+      target.log("LIFECYCLE: Component step value update");
       let newStepAmount;
       const progressState = target.getProgressState;
       //create step change value, if we have added steps, use the value, else multiply the removedSteps by -1 to subtract from

@@ -21,7 +21,7 @@ class Progress extends HTMLElement {
     this.initializeEventListeners();
   }
   set setProgressState(state) {
-    this.log(`setting progress state`);
+    this.log(`INIT: Setting progress state`);
     this.log(state);
     this._progressState = state;
   }
@@ -142,8 +142,12 @@ class Progress extends HTMLElement {
     return window.top.Impressure ? true : false;
   }
   checkFlowLogicVariables() {
+    if (this.configs.flowLogicVariables) {
+      this.log(
+        `INIT: URL parameter value(s) altered number of pages, updating numOfSteps from ${this.getProgressState.numOfSteps}...`
+      );
+    }
     for (const [value, action] of Object.entries(this.configs.flowLogicVariables)) {
-      this.log(`URL parameter value has altered number of pages, updating numOfPages.`);
       if (value !== "") {
         if (action === "remove") {
           this.getProgressState.numOfSteps--;
@@ -152,6 +156,9 @@ class Progress extends HTMLElement {
         }
       }
     }
+    this.setStepsRemaining = this.getProgressState.numOfSteps;
+    this.getProgressState.stepIncrement = this.calculateStepIncrement();
+    this.log(`INIT: ...to ${this.getProgressState.numOfSteps}`);
   }
   pushImpressureBlacklistedPageId(id) {
     this._progressState.impressureBlacklistedPages = this._progressState.impressureBlacklistedPages || [];
@@ -167,6 +174,7 @@ class Progress extends HTMLElement {
     });
     if (invalidPage.length > 0) {
       this.pushImpressureBlacklistedPageId(pageId);
+      this.log(`INIT: Page Id: ${currentPageId} invalid, skipping.`);
       return false;
     }
     return true;
@@ -179,8 +187,13 @@ class Progress extends HTMLElement {
     if (currentPageIndexInTrail === -1 || currentPageIndexInTrail === impressurePageHistoryTrail.length - 1) {
       return false;
     }
-    this.log(`Page Id: ${currentPageId} invalid, skipping.`);
+    this.log(`INIT: Page Id: ${currentPageId} already in page navigation history.`);
     return true;
+  }
+  calculateStepIncrement() {
+    return Number(
+      (this.configs.type === "steps" ? 1 : this.getProgressState.maxValue / this.getProgressState.numOfSteps).toFixed(2)
+    );
   }
   /**
    * method that initializes component during it's first mount. Sets defaults for first page load.
@@ -194,19 +207,17 @@ class Progress extends HTMLElement {
       this.setProgressState = savedState._progressState;
       this.configs = savedState._configs;
     } else {
-      const numOfSteps = this.configs.steps;
-      const componentType = this.configs.type;
-      const max = this.configs.max;
-      const stepIncrement = Number((componentType === "steps" ? 1 : max / numOfSteps).toFixed(2));
       this.setProgressState = {
         activeStep: 0,
-        numOfSteps: numOfSteps,
-        stepIncrement: stepIncrement,
+        numOfSteps: configs.steps,
         steps: new Map(),
         percentcomplete: 0,
-        maxValue: max,
-        stepsRemaining: numOfSteps,
+        maxValue: configs.max,
+        stepsRemaining: (this.setStepsRemaining = configs.steps),
       };
+      //need to do this outside of object creation above, the calculateStepIncrement method needs progress state to be initialized, which it
+      //isn't yet when calling inside object creation
+      this.getProgressState.stepIncrement = this.calculateStepIncrement();
       if (this.isImpressureEmbedded()) {
         this.checkFlowLogicVariables();
       }
@@ -214,7 +225,7 @@ class Progress extends HTMLElement {
     //test to see if we've already been on this page
     if (this.isImpressureEmbedded() && this.detectImpressureBackwardsNavigation()) {
       //emit pause event
-      this.log("back navigation event detected, pausing progress");
+      this.log("UX: Backwards navigation event detected, pausing progress");
       this.notifyEventUpdate({
         name: "componentStepValueChange",
         data: {
