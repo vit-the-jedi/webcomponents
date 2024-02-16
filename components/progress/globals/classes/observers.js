@@ -220,7 +220,7 @@ class EventObserver {
         //were at the end of progress
         if (newStepAmount === 0) {
           progressState.stepsRemaining = 0;
-          progressState.stepIncrementt = progressState.maxValue / progressState.numOfSteps;
+          progressState.stepIncrementt = target.calculateStepIncrement();
           progressState.activeStep = progressState.maxValue;
           progressState.percentcomplete = progressState.maxValue;
         } else {
