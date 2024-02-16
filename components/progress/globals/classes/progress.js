@@ -148,7 +148,7 @@ class Progress extends HTMLElement {
   currentPageIsValidImpressurePage(pageId) {
     const impressureCurrentState = Impressure.context.getState();
     const pageName = impressureCurrentState.pages[pageId].name.toLowerCase();
-    const blacklistedPageNames = ["images", "integration", "prepop instructions"];
+    const blacklistedPageNames = ["images", "integration", "prepop instructions", "data layer push"];
 
     const invalidPage = blacklistedPageNames.filter((blacklistedName) => {
       pageName.includes(blacklistedName);
