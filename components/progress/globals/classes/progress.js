@@ -141,6 +141,18 @@ class Progress extends HTMLElement {
   isImpressureEmbedded() {
     return window.top.Impressure ? true : false;
   }
+  checkFlowLogicVariables() {
+    for (const [value, action] of Object.entries(this.configs.flowLogicVariables)) {
+      this.log(`URL parameter value has altered number of pages, updating numOfPages.`);
+      if (value !== "") {
+        if (action === "remove") {
+          this.getProgressState.numOfSteps--;
+        } else {
+          this.getProgressState.numOfSteps++;
+        }
+      }
+    }
+  }
   pushImpressureBlacklistedPageId(id) {
     this._progressState.impressureBlacklistedPages = this._progressState.impressureBlacklistedPages || [];
     this._progressState.impressureBlacklistedPages.push(id);
@@ -167,6 +179,7 @@ class Progress extends HTMLElement {
     if (currentPageIndexInTrail === -1 || currentPageIndexInTrail === impressurePageHistoryTrail.length - 1) {
       return false;
     }
+    this.log(`Page Id: ${currentPageId} invalid, skipping.`);
     return true;
   }
   /**
@@ -194,11 +207,14 @@ class Progress extends HTMLElement {
         maxValue: max,
         stepsRemaining: numOfSteps,
       };
+      if (this.isImpressureEmbedded()) {
+        this.checkFlowLogicVariables();
+      }
     }
     //test to see if we've already been on this page
-    if (this.detectImpressureBackwardsNavigation()) {
+    if (this.isImpressureEmbedded() && this.detectImpressureBackwardsNavigation()) {
       //emit pause event
-      this.log("backwards event detected.");
+      this.log("back navigation event detected, pausing progress");
       this.notifyEventUpdate({
         name: "componentStepValueChange",
         data: {
