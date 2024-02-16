@@ -22,9 +22,10 @@ export default class ProgressBar extends Progress {
     const activeStepFromState = this._progressState.percentcomplete;
     if (name === "percentcomplete") {
       //animation for width of progress bar
+      //innerBar.style.width = activeStepFromState + "%";
       setTimeout(() => {
         innerBar.style.width = activeStepFromState + "%";
-      }, 250);
+      }, 550);
     }
   }
   createStyles() {
@@ -90,8 +91,15 @@ export default class ProgressBar extends Progress {
         bar.id = "progress-bar-component";
         const barInner = document.createElement("div");
         barInner.classList.add("progress-bar-inner");
+        let innerBarWidth = 0;
 
-        barInner.style.width = `0%`;
+        if (this.getProgressState.pause) {
+          innerBarWidth = this.getProgressState.activeStep;
+        } else {
+          innerBarWidth = Math.max(this.getProgressState.activeStep - this.getProgressState.stepIncrement, 0);
+        }
+
+        barInner.style.width = `${innerBarWidth}%`;
 
         bar.appendChild(barInner);
 
