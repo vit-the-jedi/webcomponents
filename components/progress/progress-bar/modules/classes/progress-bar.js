@@ -6,9 +6,6 @@ export default class ProgressBar extends Progress {
   constructor() {
     super();
   }
-  static get observedAttributes() {
-    return ["percentcomplete"];
-  }
   attributeChangedCallback(name, oldValue, newValue) {
     const shadowRoot = this.shadowRoot;
     const shadowRootChildren = [...shadowRoot.children];
@@ -26,6 +23,39 @@ export default class ProgressBar extends Progress {
         innerBar.style.width = activeStepFromState + "%";
       }, 250);
     }
+  }
+  calculateProgressPercentage() {
+    return (this._activeStep / this._totalSteps) * 100;
+  }
+  effects() {
+    return {
+      _configs: {
+        configsUpdated: () => {
+          console.log(this._configs);
+          console.log("Hello");
+        },
+      },
+      _activeStep: {
+        activeStepUpdated: () => {
+          console.log(this._activeStep);
+        },
+        updateStepsRemaining: () => {
+          console.log(this._stepsRemaining);
+          this._stepsRemaining = this._configs.totalSteps - this._activeStep;
+        },
+      },
+      _progressPercentage: {
+        outputProgressPercentage: () => {
+          console.log(this._progressPercentage);
+        },
+      },
+      _totalSteps: {
+        totalStepsUpdated: () => {
+          console.log(this._totalSteps);
+          this._progressPercentage = (this._activeStep / this._totalSteps) * 100;
+        },
+      },
+    };
   }
   createStyles() {
     const styles = `
@@ -53,62 +83,6 @@ export default class ProgressBar extends Progress {
     const styleElement = document.createElement("style");
     styleElement.textContent = styles;
     return styleElement;
-  }
-  getAnchorPoint(configAnchorPoint) {
-    //most reliable way to wait for React DOM render from outside of react -___-
-    return new Promise((resolve, reject) => {
-      function checkElement() {
-        const element = document.querySelector(configAnchorPoint);
-        if (element) {
-          clearInterval(intervalId);
-          resolve(element);
-        }
-      }
-      const intervalId = setInterval(checkElement, 50);
-    });
-  }
-  getComponentAnchorPoint() {
-    return new Promise(async (resolve, reject) => {
-      this._anchorPoint = await this.getAnchorPoint(this.configs.anchorPoint);
-      resolve();
-    });
-  }
-  createComponent() {
-    return new Promise((resolve, reject) => {
-      try {
-        this.classList.add("component-positioned");
-        // Create a shadow root
-        const shadow = this.attachShadow({ mode: "open" });
-
-        const progressWrapper = document.createElement("div");
-        progressWrapper.classList.add("progress-wrapper");
-
-        const bar = document.createElement("div");
-        bar.classList.add("progress-bar");
-        bar.max = this.getAttribute("data-max");
-        bar.value = this.getAttribute("data-value");
-        bar.id = "progress-bar-component";
-        const barInner = document.createElement("div");
-        barInner.classList.add("progress-bar-inner");
-
-        barInner.style.width = `0%`;
-
-        bar.appendChild(barInner);
-
-        progressWrapper.appendChild(bar);
-        shadow.appendChild(progressWrapper);
-        this.shadow = shadow;
-        const progDiv = document.createElement("div");
-        progDiv.classList.add("progress-container");
-        this.setAttribute("data-max", "100");
-        this.setAttribute("data-steps", this.configs.steps);
-        this.shadow.prepend(this.createGlobalStyles());
-        this.shadow.prepend(this.createStyles());
-        resolve(this);
-      } catch (e) {
-        reject(e);
-      }
-    });
   }
 }
 
