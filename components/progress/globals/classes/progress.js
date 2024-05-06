@@ -14,6 +14,8 @@ class Progress extends HTMLElement {
     this._progressPercentage = 0;
     this._stepsRemaining = 0;
     this._totalSteps = 0;
+    this._progressPercentageRounded = 0;
+    this._outputType = null;
     this._configs = {};
     this._devMode = true;
   }
